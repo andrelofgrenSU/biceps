@@ -1,23 +1,23 @@
-#define LINE1 #pragma once
+#define HEADER_LINE1 #pragma once
 #ifdef USE_LONG_DOUBLE
-	#define LINE2 #define ABS_FUNC fabsl
-	#define LINE3 #define POW_FUNC powl
-	#define LINE4 #define SIN_FUNC sinl
-	#define LINE5 #define COS_FUNC cosl
-	#define LINE6 #define PI_CONST M_PIl
-	#define LINE7 typedef long double FloatType;
+	#define HEADER_LINE2 #define ABS_FUNC fabsl
+	#define HEADER_LINE3 #define POW_FUNC powl
+	#define HEADER_LINE4 #define SIN_FUNC sinl
+	#define HEADER_LINE5 #define COS_FUNC cosl
+	#define HEADER_LINE6 #define PI_CONST M_PIl
+	#define HEADER_LINE7 typedef long double FloatType;
 #else
-	#define LINE2 #define ABS_FUNC fabs
-	#define LINE3 #define POW_FUNC pow
-	#define LINE4 #define SIN_FUNC sin
-	#define LINE5 #define COS_FUNC cos
-	#define LINE6 #define PI_CONST M_PI
-	#define LINE7 typedef double FloatType;
+	#define HEADER_LINE2 #define ABS_FUNC fabs
+	#define HEADER_LINE3 #define POW_FUNC pow
+	#define HEADER_LINE4 #define SIN_FUNC sin
+	#define HEADER_LINE5 #define COS_FUNC cos
+	#define HEADER_LINE6 #define PI_CONST M_PI
+	#define HEADER_LINE7 typedef double FloatType;
 #endif
-LINE1
-LINE2
-LINE3
-LINE4
-LINE5
-LINE6
-LINE7
+HEADER_LINE1
+HEADER_LINE2
+HEADER_LINE3
+HEADER_LINE4
+HEADER_LINE5
+HEADER_LINE6
+HEADER_LINE7
