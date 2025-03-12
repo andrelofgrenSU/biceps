@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/stokes_test_suite.dir/stokes_test_suite.cpp.o -o stokes_test_suite  -Wl,-rpath,/home/user/biceps_new/.build/src:/usr/local/lib ../src/libbiceps.so /usr/lib/x86_64-linux-gnu/libboost_python312.so /usr/lib/x86_64-linux-gnu/libboost_unit_test_framework.so /usr/lib/x86_64-linux-gnu/libpython3.12.so /usr/local/lib/libeigenpy.so

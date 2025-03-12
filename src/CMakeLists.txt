@@ -1,3 +1,5 @@
+include_directories(${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS} 
+${Python3_NumPy_INCLUDE_DIRS})
 add_library(
 	biceps
 	${CMAKE_CURRENT_SOURCE_DIR}/logger.cpp
@@ -10,8 +12,7 @@ add_library(
 	${CMAKE_CURRENT_SOURCE_DIR}/poisson_fem.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/pstokes_fem.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/free_surface_fem.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/time_integrator.cpp
-	# ${CMAKE_CURRENT_SOURCE_DIR}/io_handler.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/pywrapper.cpp
 )
 
 # Generate different float type header based on whether USE_LONG_DOUBLE is set.
@@ -27,8 +28,13 @@ add_custom_command(
 add_custom_target(preprocess_float_type_header DEPENDS ${CMAKE_BINARY_DIR}/float_type.hpp)
 add_dependencies(biceps preprocess_float_type_header)
 
-include_directories(${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS})
+include_directories(${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}/include ${Boost_INCLUDE_DIRS} ${Python3_INCLUDE_DIRS})
 target_link_libraries(
-	biceps Eigen3::Eigen ${Boost_LIBRARIES} ${XDMF_LIBRARY} ${XDMF_CORE_LIBRARY}
+	biceps Eigen3::Eigen ${Boost_LIBRARIES} ${Python3_LIBRARIES} ${eigenpy_LIBRARIES}
 )
 install(TARGETS biceps DESTINATION lib)
+install(CODE "execute_process(
+	COMMAND ${CMAKE_COMMAND} -E create_symlink
+	${CMAKE_INSTALL_PREFIX}/lib/libbiceps.so
+	${Python3_SITELIB}/biceps.so
+)")

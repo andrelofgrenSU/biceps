@@ -1,0 +1,92 @@
+[
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/logger.cpp.o -c /home/user/biceps_new/src/logger.cpp",
+  "file": "/home/user/biceps_new/src/logger.cpp",
+  "output": "src/CMakeFiles/biceps.dir/logger.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/interval_mesh.cpp.o -c /home/user/biceps_new/src/interval_mesh.cpp",
+  "file": "/home/user/biceps_new/src/interval_mesh.cpp",
+  "output": "src/CMakeFiles/biceps.dir/interval_mesh.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/structured_mesh.cpp.o -c /home/user/biceps_new/src/structured_mesh.cpp",
+  "file": "/home/user/biceps_new/src/structured_mesh.cpp",
+  "output": "src/CMakeFiles/biceps.dir/structured_mesh.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/fem_1d.cpp.o -c /home/user/biceps_new/src/fem_1d.cpp",
+  "file": "/home/user/biceps_new/src/fem_1d.cpp",
+  "output": "src/CMakeFiles/biceps.dir/fem_1d.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/fem_2d.cpp.o -c /home/user/biceps_new/src/fem_2d.cpp",
+  "file": "/home/user/biceps_new/src/fem_2d.cpp",
+  "output": "src/CMakeFiles/biceps.dir/fem_2d.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/fem_function_1d.cpp.o -c /home/user/biceps_new/src/fem_function_1d.cpp",
+  "file": "/home/user/biceps_new/src/fem_function_1d.cpp",
+  "output": "src/CMakeFiles/biceps.dir/fem_function_1d.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/fem_function_2d.cpp.o -c /home/user/biceps_new/src/fem_function_2d.cpp",
+  "file": "/home/user/biceps_new/src/fem_function_2d.cpp",
+  "output": "src/CMakeFiles/biceps.dir/fem_function_2d.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/poisson_fem.cpp.o -c /home/user/biceps_new/src/poisson_fem.cpp",
+  "file": "/home/user/biceps_new/src/poisson_fem.cpp",
+  "output": "src/CMakeFiles/biceps.dir/poisson_fem.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/pstokes_fem.cpp.o -c /home/user/biceps_new/src/pstokes_fem.cpp",
+  "file": "/home/user/biceps_new/src/pstokes_fem.cpp",
+  "output": "src/CMakeFiles/biceps.dir/pstokes_fem.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/free_surface_fem.cpp.o -c /home/user/biceps_new/src/free_surface_fem.cpp",
+  "file": "/home/user/biceps_new/src/free_surface_fem.cpp",
+  "output": "src/CMakeFiles/biceps.dir/free_surface_fem.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/src",
+  "command": "/usr/bin/c++ -Dbiceps_EXPORTS -I/home/user/biceps_new/include -I/usr/include/python3.12 -I/usr/lib/python3/dist-packages/numpy/core/include -I/home/user/biceps_new/.build -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -fPIC -o CMakeFiles/biceps.dir/pywrapper.cpp.o -c /home/user/biceps_new/src/pywrapper.cpp",
+  "file": "/home/user/biceps_new/src/pywrapper.cpp",
+  "output": "src/CMakeFiles/biceps.dir/pywrapper.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/unit_tests",
+  "command": "/usr/bin/c++  -I/home/user/biceps_new/.build -I/home/user/biceps_new/unit_tests/include -I/home/user/biceps_new/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -o CMakeFiles/mesh_test_suite.dir/mesh_test_suite.cpp.o -c /home/user/biceps_new/unit_tests/mesh_test_suite.cpp",
+  "file": "/home/user/biceps_new/unit_tests/mesh_test_suite.cpp",
+  "output": "unit_tests/CMakeFiles/mesh_test_suite.dir/mesh_test_suite.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/unit_tests",
+  "command": "/usr/bin/c++  -I/home/user/biceps_new/.build -I/home/user/biceps_new/unit_tests/include -I/home/user/biceps_new/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -o CMakeFiles/fem_2d_test_suite.dir/fem_2d_test_suite.cpp.o -c /home/user/biceps_new/unit_tests/fem_2d_test_suite.cpp",
+  "file": "/home/user/biceps_new/unit_tests/fem_2d_test_suite.cpp",
+  "output": "unit_tests/CMakeFiles/fem_2d_test_suite.dir/fem_2d_test_suite.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/unit_tests",
+  "command": "/usr/bin/c++  -I/home/user/biceps_new/.build -I/home/user/biceps_new/unit_tests/include -I/home/user/biceps_new/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -o CMakeFiles/poisson_test_suite.dir/poisson_test_suite.cpp.o -c /home/user/biceps_new/unit_tests/poisson_test_suite.cpp",
+  "file": "/home/user/biceps_new/unit_tests/poisson_test_suite.cpp",
+  "output": "unit_tests/CMakeFiles/poisson_test_suite.dir/poisson_test_suite.cpp.o"
+},
+{
+  "directory": "/home/user/biceps_new/.build/unit_tests",
+  "command": "/usr/bin/c++  -I/home/user/biceps_new/.build -I/home/user/biceps_new/unit_tests/include -I/home/user/biceps_new/include -isystem /usr/include/eigen3 -O3 -DNDEBUG -std=gnu++11 -o CMakeFiles/stokes_test_suite.dir/stokes_test_suite.cpp.o -c /home/user/biceps_new/unit_tests/stokes_test_suite.cpp",
+  "file": "/home/user/biceps_new/unit_tests/stokes_test_suite.cpp",
+  "output": "unit_tests/CMakeFiles/stokes_test_suite.dir/stokes_test_suite.cpp.o"
+}
+]

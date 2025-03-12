@@ -6,7 +6,7 @@ include_directories(
 )
 
 add_executable(mesh_test_suite ${CMAKE_CURRENT_SOURCE_DIR}/mesh_test_suite.cpp)
-target_link_libraries(mesh_test_suite Eigen3::Eigen biceps ${Boost_LIBRARIES} ${UMFPACK_LIBRARIES})
+target_link_libraries(mesh_test_suite biceps Eigen3::Eigen ${Boost_LIBRARIES})
 
 add_executable(fem_2d_test_suite ${CMAKE_CURRENT_SOURCE_DIR}/fem_2d_test_suite.cpp)
 target_link_libraries(fem_2d_test_suite Eigen3::Eigen biceps ${Boost_LIBRARIES} ${UMFPACK_LIBRARIES})

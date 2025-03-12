@@ -1,0 +1,14 @@
+/usr/local/include/float_type.hpp
+/usr/local/include/eigen_spmat_addons.hpp
+/usr/local/include/enums.hpp
+/usr/local/include/logger.hpp
+/usr/local/include/interval_mesh.hpp
+/usr/local/include/structured_mesh.hpp
+/usr/local/include/fem_1d.hpp
+/usr/local/include/fem_2d.hpp
+/usr/local/include/fem_function_1d.hpp
+/usr/local/include/fem_function_2d.hpp
+/usr/local/include/pstokes_fem.hpp
+/usr/local/include/poisson_fem.hpp
+/usr/local/include/free_surface_fem.hpp
+/usr/local/lib/libbiceps.so

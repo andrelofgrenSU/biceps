@@ -2,742 +2,902 @@
 #include <pstokes_fem.hpp>
 #include <fem_1d.hpp>
 #include <fem_2d.hpp>
+#include <enums.hpp>
 
+// Nonlinear viscosity function
 static inline FloatType glen_flow_viscosity(
-	FloatType A, FloatType n_i, FloatType eps_reg_2, FloatType eff_strain_rate_2
+    FloatType A, FloatType n_i, FloatType eps_reg_2, FloatType eff_strain_rate_2
 ) {
-	return 0.5*POW_FUNC(A, -1.0/n_i)*POW_FUNC(
-		eff_strain_rate_2 + eps_reg_2, (1.0-n_i)/(2.0*n_i)
-	);
+    return 0.5*POW_FUNC(A, -1.0/n_i)*POW_FUNC(
+        eff_strain_rate_2 + eps_reg_2, (1.0-n_i)/(2.0*n_i)
+    );
 }
 
-pStokesProblem::pStokesProblem(
-	FloatType rate_factor,
-	FloatType glen_exp,
-	FloatType eps_reg_2,
-	std::function<FloatType(FloatType, FloatType)> force_x,
-	std::function<FloatType(FloatType, FloatType)> force_z,
-	StructuredMesh &u_mesh,
-	StructuredMesh &p_mesh
-) : 
-	A(rate_factor), n_i(glen_exp), eps_reg_2(eps_reg_2),
-	force_x(force_x), force_z(force_z),
-	u_mesh(u_mesh), p_mesh(p_mesh), logger(WARN, std::cout)
+pStokesProblem::pStokesProblem(StructuredMesh &u_mesh, StructuredMesh &p_mesh) : 
+    u_mesh(u_mesh), p_mesh(p_mesh), logger(INFO, std::cout)
 {
-	nv_dofs = u_mesh.nof_dofs();
-	np_dofs = p_mesh.nof_dofs();
-	n_dofs = 2*nv_dofs + np_dofs; 
+    // Set the number of dofs for velocity and pressure fields
+    nv_dofs = u_mesh.nof_dofs();  // Number of velocity dofs (both horizontal and vertical)
+    np_dofs = p_mesh.nof_dofs();  // Number of pressure dofs
+    n_dofs = 2*nv_dofs + np_dofs;  // Total number of dofs (velocity + pressure)
 
-	rhs_vec = Eigen::VectorX<FloatType>::Zero(n_dofs);
+    // Initialize velocity and pressure vectors for the FEM system (2D)
+    ux_v2d = Eigen::VectorXi::Zero(nv_dofs);  // Horizontal velocity dofs vector
+    uz_v2d = Eigen::VectorXi::Zero(nv_dofs);  // Vertical velocity dofs vector
+    u_v2d = Eigen::VectorXi::Zero(2*nv_dofs);  // Combined velocity dofs vector
+    p_v2d = Eigen::VectorXi::Zero(np_dofs);  // Pressure dofs vector
 
-	ux_v2d = Eigen::VectorXi::Zero(nv_dofs);
-	uz_v2d = Eigen::VectorXi::Zero(nv_dofs);	
-	u_v2d = Eigen::VectorXi::Zero(2*nv_dofs);
-	p_v2d = Eigen::VectorXi::Zero(np_dofs);
+    // Initialize dof to variable index mappings
+    ux_d2v = Eigen::VectorXi::Constant(n_dofs, -1);  // Mapping for horizontal velocity to dof
+    uz_d2v = Eigen::VectorXi::Constant(n_dofs, -1);  // Mapping for vertical velocity to dof
 
-	ux_d2v = Eigen::VectorXi::Constant(n_dofs, -1);
-	uz_d2v = Eigen::VectorXi::Constant(n_dofs, -1);
+    // Fill the ux_v2d and ux_d2v vectors for horizontal velocity components
+    int dof = 0;
+    for (int vi = 0; vi < nv_dofs; ++vi) {
+        ux_v2d(vi) = dof;  // Set the index for horizontal velocity component
+        ux_d2v(dof) = vi;  // Set the mapping from dof to velocity index
+        dof += 2;
+    }
 
-	int dof = 0;
-	for (int vi = 0; vi < nv_dofs; vi++) {
-		ux_v2d(vi) = dof;
-		ux_d2v(dof) = vi;
-		dof += 2;
-	}
-	dof = 1;
-	for (int vi = 0; vi < nv_dofs; vi++) {
-		uz_v2d(vi) = dof;
-		uz_d2v(dof) = vi;
-		dof += 2;
-	}
-	dof = 2*nv_dofs;
-	for (int vi = 0; vi < np_dofs; vi++) {
-		p_v2d(vi) = dof;
-		dof += 1;
-	}
-	u_v2d(Eigen::seqN(0, nv_dofs, 2)) = ux_v2d;
-	u_v2d(Eigen::seq(1, 2*nv_dofs, 2)) = uz_v2d;
+    // Fill the uz_v2d and uz_d2v vectors for vertical velocity components
+    dof = 1;
+    for (int vi = 0; vi < nv_dofs; ++vi) {
+        uz_v2d(vi) = dof;  // Set the index for vertical velocity component
+        uz_d2v(dof) = vi;  // Set the mapping from dof to velocity index
+        dof += 2;
+    }
 
-	w_vec = Eigen::VectorX<FloatType>::Zero(n_dofs);
-	lhs_mat = Eigen::SparseMatrix<FloatType>(n_dofs, n_dofs);
+    // Fill the p_v2d vector for pressure components
+    dof = 2*nv_dofs;
+    for (int vi = 0; vi < np_dofs; ++vi) {
+        p_v2d(vi) = dof;  // Set the index for pressure component
+        dof += 1;  // Increment dof for the next pressure component
+    }
 
-	// Estimate max nnz
-	int u_nnz_per_dof = 2*(2*u_mesh.degree() + 1)*(2*u_mesh.degree() + 1);
-	int p_nnz_per_dof = (2*p_mesh.degree() + 1)*(2*p_mesh.degree() + 1);
-	int nnz_per_dof = u_nnz_per_dof + p_nnz_per_dof;
-	lhs_coeffs.reserve(nnz_per_dof*n_dofs);
+    // Combine horizontal and vertical velocity mappings into u_v2d
+    u_v2d(Eigen::seqN(0, nv_dofs, 2)) = ux_v2d;  // Horizontal velocity vector
+    u_v2d(Eigen::seq(1, 2*nv_dofs, 2)) = uz_v2d;  // Vertical velocity vector
+
+    // Initialize sparse matrices for the system
+    lhs_mat = Eigen::SparseMatrix<FloatType>(n_dofs, n_dofs);  // Left-hand side matrix
+    rhs_vec = Eigen::VectorX<FloatType>::Zero(n_dofs);  // Right-hand side vector
+    w_vec = Eigen::VectorX<FloatType>::Zero(n_dofs);  // Solution vector
+
+    // Estimate the maximum number of non-zero entries for the left-hand side matrix
+    int u_nnz_per_dof = 2*(2*u_mesh.degree() + 1)*(2*u_mesh.degree() + 1);  // Non-zeros per velocity dof
+    int p_nnz_per_dof = (2*p_mesh.degree() + 1)*(2*p_mesh.degree() + 1);  // Non-zeros per pressure dof
+    int nnz_per_dof = u_nnz_per_dof + p_nnz_per_dof;  // Total non-zeros per dof
+    lhs_coeffs.reserve(nnz_per_dof * n_dofs);  // Reserve memory for the left-hand side matrix coefficients
 }
 
-// FIXME: Is there a more efficient way of inserting elements directly into the matrix?
-void pStokesProblem::assemble_stress_block()
+void pStokesProblem::assemble_stress_block(
+    FloatType A, FloatType n_i, FloatType eps_reg_2, int gauss_precision
+) {
+    // Initialize matrices and vectors for computation
+    Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
+        phi_rs, dphi_rs, dphi_xz;
+    Eigen::VectorX<FloatType> qweights, detJ_rs;
+    Eigen::VectorXi element_u;
+
+    // Perform Gauss-Legendre quadrature to get quadrature points and weights
+    FEM2D::gauss_legendre_quadrature(
+        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+    );
+
+    // Generate Lagrange basis functions for the quadrature points
+    FEM2D::lagrange_basis(
+        u_mesh.degree(),
+        u_mesh.cell_type(),
+        qpoints_rs,
+        phi_rs, dphi_rs
+    );
+
+    // Initialize determinant of the Jacobian and other variables
+    detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
+    qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
+    dphi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), u_mesh.dofs_per_cell());
+
+    // Initialize matrices for stress block components (A_xx, A_xz, A_zz)
+    Eigen::MatrixX<FloatType> A_xx = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
+    );
+    Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
+    );
+    Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
+    );
+
+    // Initialize the full stress block matrix
+    Eigen::MatrixX<FloatType> A_block = Eigen::MatrixX<FloatType>::Zero(
+        2*u_mesh.dofs_per_cell(), 2*u_mesh.dofs_per_cell()
+    );
+
+    // Loop over all mesh cells
+    for (int k = 0; k < u_mesh.cmat.rows(); ++k) {
+        // Retrieve the element indices and corresponding node coordinates
+        element_u = u_mesh.cmat.row(k);
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
+
+        // Map the element to the reference cell
+        FEM2D::map_to_reference_cell(
+            u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
+            phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
+        );
+
+        // Extract velocity components (ux and uz) on the current element
+        Eigen::VectorX<FloatType> ux_vec = w_vec(ux_v2d(element_u));
+        Eigen::VectorX<FloatType> uz_vec = w_vec(uz_v2d(element_u));
+
+        // Split the derivative matrices for the horizontal and vertical velocity components
+        Eigen::MatrixX<FloatType> Sx = dphi_xz(Eigen::seq(0, Eigen::last, 2), Eigen::all);
+        Eigen::MatrixX<FloatType> Sz = dphi_xz(Eigen::seq(1, Eigen::last, 2), Eigen::all);
+
+        // Compute the gradients of the velocity components
+        Eigen::VectorX<FloatType> ddx_ux = Sx*ux_vec;
+        Eigen::VectorX<FloatType> ddz_ux = Sz*ux_vec;
+        Eigen::VectorX<FloatType> ddx_uz = Sx*uz_vec;
+        Eigen::VectorX<FloatType> ddz_uz = Sz*uz_vec;
+
+        // Loop over quadrature points
+        for (int q = 0; q < qpoints_rs.rows(); ++q) {
+            int wx = 2*q;  // Index of x-derivative
+            int wz = wx + 1;  // Index of z-derivative
+
+            // Compute the effective strain rate based on the velocity gradients
+            FloatType eff_strain_rate_2 = 0.5*(
+                POW_FUNC(ddx_ux(q), 2)
+                + 0.5*POW_FUNC(ddz_ux(q) + ddx_uz(q), 2)
+                + POW_FUNC(ddz_uz(q), 2)
+            );
+
+            // Glen's flow law rheology to compute viscosity
+            FloatType eta = glen_flow_viscosity(
+                A, n_i, eps_reg_2, eff_strain_rate_2
+            );
+
+            // Multiply by the determinant of the Jacobian and quadrature weight
+            FloatType detJxWxEta = ABS_FUNC(detJ_rs(q)) * qweights(q) * eta;
+
+            // Assemble the stress block matrix (A_xx, A_xz, A_zz)
+            for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
+                for (int j = 0; j < u_mesh.dofs_per_cell(); j++) {
+                    // Add contributions to the stress matrix components
+                    A_xx(i, j) += (2.0*dphi_xz(wx, i)*dphi_xz(wx, j) + dphi_xz(wz, i)*dphi_xz(wz, j))*detJxWxEta;
+                    A_xz(i, j) += dphi_xz(wz, i)*dphi_xz(wx, j) * detJxWxEta;
+                    A_zz(i, j) += (dphi_xz(wx, i)*dphi_xz(wx, j) + 2.0*dphi_xz(wz, i)*dphi_xz(wz, j))* detJxWxEta;
+                }
+            }
+        }
+
+        // Push the computed values into the coefficient list for the left-hand side matrix
+        for (int i = 0; i < u_mesh.dofs_per_cell(); ++i) {
+            for (int j = 0; j < u_mesh.dofs_per_cell(); ++j) {
+                // Add coefficients for horizontal velocity (A_xx)
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    ux_v2d(element_u(i)),
+                    ux_v2d(element_u(j)),
+                    A_xx(i, j)
+                ));
+                // Add coefficients for horizontal-vertical velocity (A_xz)
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    ux_v2d(element_u(i)),
+                    uz_v2d(element_u(j)),
+                    A_xz(i, j)
+                ));
+                // Add coefficients for vertical-horizontal velocity (A_xz)
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(element_u(i)),
+                    ux_v2d(element_u(j)),
+                    A_xz(j, i)
+                ));
+                // Add coefficients for vertical velocity (A_zz)
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(element_u(i)),
+                    uz_v2d(element_u(j)),
+                    A_zz(i, j)
+                ));
+            }
+        }
+
+        // Reset the matrices for the next element
+        A_xx.setZero();
+        A_xz.setZero();
+        A_zz.setZero();
+    }
+
+    // Update the number of pushed elements in the lhs_coeffs list
+    nof_pushed_elements = lhs_coeffs.size();
+}
+
+void pStokesProblem::assemble_incomp_block(int gauss_precision)
 {
-	Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
-		phi_rs, dphi_rs, dphi_xz;
-	Eigen::VectorX<FloatType> qweights, detJ_rs;
-	Eigen::VectorXi element_u;
-	
-	FEM2D::gauss_legendre_quadrature(
-		gp_stress, u_mesh.cell_type(), qpoints_rs, qweights
-	);
+    // Declare matrices and vectors for node coordinates, quadrature points, and derivatives
+    Eigen::MatrixX<FloatType> node_coords_u, node_coords_p, qpoints_rs, qpoints_xz,
+        phi_rs, dphi_rs, dphi_xz, psi_rs, dpsi_rs, dpsi_xz;
+    Eigen::VectorX<FloatType> qweights, detJ_rs;
+    Eigen::VectorXi element_u, element_p;
 
-	FEM2D::lagrange_basis(
-		u_mesh.degree(),
-		u_mesh.cell_type(),
-		qpoints_rs,
-		phi_rs, dphi_rs
-	);
+    // Perform Gauss-Legendre quadrature to calculate quadrature points and weights
+    FEM2D::gauss_legendre_quadrature(
+        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+    );
 
-	detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
-	qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
-	dphi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), u_mesh.dofs_per_cell());
+    // Generate Lagrange basis functions and their derivatives for pressure (p) element
+    FEM2D::lagrange_basis(
+        p_mesh.degree(), p_mesh.cell_type(), qpoints_rs, psi_rs, dpsi_rs
+    );
 
-	Eigen::MatrixX<FloatType> A_xx = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
-	);
-	Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
-	);
-	Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
-	);
+    // Generate Lagrange basis functions and their derivatives for velocity (u) element
+    FEM2D::lagrange_basis(
+        u_mesh.degree(), u_mesh.cell_type(), qpoints_rs, phi_rs, dphi_rs
+    );
 
-	Eigen::MatrixX<FloatType> A_block = Eigen::MatrixX<FloatType>::Zero(
-		2*u_mesh.dofs_per_cell(), 2*u_mesh.dofs_per_cell()
-	);
+    // Initialize the determinant of Jacobian and other matrices required for integration
+    detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
+    qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
+    dphi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), u_mesh.dofs_per_cell());
+    dpsi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), p_mesh.dofs_per_cell());
 
-	for (int k = 0; k < u_mesh.cmat.rows(); k++) {
-		element_u = u_mesh.cmat.row(k);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		FEM2D::map_to_reference_cell(
-			u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
-			phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
-		);
+    // Declare matrices to store contributions to the incompressibility block (B_px, B_pz, B_xp, B_zp)
+    Eigen::MatrixX<FloatType> B_px = Eigen::MatrixX<FloatType>::Zero(
+        p_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
+    );
+    Eigen::MatrixX<FloatType> B_pz = Eigen::MatrixX<FloatType>::Zero(
+        p_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
+    );
+    Eigen::MatrixX<FloatType> B_xp = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_cell(), p_mesh.dofs_per_cell()
+    );
+    Eigen::MatrixX<FloatType> B_zp = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_cell(), p_mesh.dofs_per_cell()
+    );
 
-		Eigen::VectorX<FloatType> ux_vec = w_vec(ux_v2d(element_u));
-		Eigen::VectorX<FloatType> uz_vec = w_vec(uz_v2d(element_u));
-		Eigen::MatrixX<FloatType> Sx = dphi_xz(Eigen::seq(0, Eigen::last, 2), Eigen::all);
-		Eigen::MatrixX<FloatType> Sz = dphi_xz(Eigen::seq(1, Eigen::last, 2), Eigen::all);
-		Eigen::VectorX<FloatType> ddx_ux = Sx*ux_vec;
-		Eigen::VectorX<FloatType> ddz_ux = Sz*ux_vec;
-		Eigen::VectorX<FloatType> ddx_uz = Sx*uz_vec;
-		Eigen::VectorX<FloatType> ddz_uz = Sz*uz_vec;
+    // Loop over all elements in the mesh to compute the contributions to the incompressibility block
+    for (int k = 0; k < u_mesh.cmat.rows(); ++k) {
+        // Get the node indices for velocity (u) and pressure (p) elements
+        element_u = u_mesh.cmat.row(k);
+        element_p = p_mesh.cmat.row(k);
 
-		for (int q = 0; q < qpoints_rs.rows(); q++) {
-			int w = 2*q;
-			FloatType eff_strain_rate_2 = 0.5*(
-				POW_FUNC(ddx_ux(q), 2)
-				+ 0.5*POW_FUNC(ddz_ux(q) + ddx_uz(q), 2)
-				+ POW_FUNC(ddz_uz(q), 2)
-			);
-			// Glen's flow law rheology
-			FloatType eta = glen_flow_viscosity(
-				A, n_i, eps_reg_2, eff_strain_rate_2
-			);
-			FloatType detJxWxEta = ABS_FUNC(detJ_rs(q))*qweights(q)*eta;
-			// TODO: tabulate dphi*dphi and calculate in advance
-			for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
-				for (int j = 0; j < u_mesh.dofs_per_cell(); j++) {
-					A_xx(i, j) += (2.0*dphi_xz(w, i)*dphi_xz(w, j) + dphi_xz(w+1, i)*dphi_xz(w+1, j))*detJxWxEta;
-					A_xz(i, j) += dphi_xz(w+1, i)*dphi_xz(w, j)*detJxWxEta;
-					A_zz(i, j) += (dphi_xz(w, i)*dphi_xz(w, j) + 2.0*dphi_xz(w+1, i)*dphi_xz(w+1, j))*detJxWxEta;
-				}
-			}
-		}
+        // Get the coordinates of the nodes for velocity and pressure elements
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
+        node_coords_p = p_mesh.pmat(element_p, Eigen::all);
 
-		for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
-			for (int j = 0; j < u_mesh.dofs_per_cell(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					ux_v2d(element_u(i)),
-					ux_v2d(element_u(j)),
-					A_xx(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					ux_v2d(element_u(i)),
-					uz_v2d(element_u(j)),
-					A_xz(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(element_u(i)),
-					ux_v2d(element_u(j)),
-					A_xz(j, i)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(element_u(i)),
-					uz_v2d(element_u(j)),
-					A_zz(i, j)
-				));
-			}
-		}
-		
-		A_xx.setZero();
-		A_xz.setZero();
-		A_zz.setZero();
-	}
-	nof_pushed_elements = lhs_coeffs.size();
+        // Map the pressure element node coordinates to the reference cell
+        FEM2D::map_to_reference_cell(
+            p_mesh.degree(), p_mesh.cell_type(), node_coords_p, qpoints_rs,
+            psi_rs, dpsi_rs, detJ_rs, qpoints_xz, dpsi_xz
+        );
+
+        // Map the velocity element node coordinates to the reference cell
+        FEM2D::map_to_reference_cell(
+            u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
+            phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
+        );
+
+        // Loop over all quadrature points to compute the matrix entries for this element
+        for (int q = 0; q < qpoints_rs.rows(); ++q) {
+            int w = 2*q;  // Index for the quadrature points corresponding to horizontal velocity
+            // Calculate the weighted Jacobian determinant for this quadrature point
+            FloatType detJxW = ABS_FUNC(detJ_rs(q)) * qweights(q);
+
+            // Loop over the dofs for pressure and velocity to compute the B matrices
+            for (int i = 0; i < p_mesh.dofs_per_cell(); ++i) {
+                for (int j = 0; j < u_mesh.dofs_per_cell(); ++j) {
+                    B_px(i, j) += -psi_rs(q, i) * dphi_xz(w, j) * detJxW;
+                    B_pz(i, j) += -psi_rs(q, i) * dphi_xz(w + 1, j) * detJxW;
+                }
+            }
+            // Loop over the dofs for velocity and pressure to compute the B matrices
+            for (int i = 0; i < u_mesh.dofs_per_cell(); ++i) {
+                for (int j = 0; j < p_mesh.dofs_per_cell(); ++j) {
+                    B_xp(i, j) += -dphi_xz(w, i) * psi_rs(q, j) * detJxW;
+                    B_zp(i, j) += -dphi_xz(w + 1, i) * psi_rs(q, j) * detJxW;
+                }
+            }
+        }
+
+        // Insert the computed values into the sparse matrix (lhs_coeffs) for pressure-velocity terms
+        for (int i = 0; i < p_mesh.dofs_per_cell(); ++i) {
+            for (int j = 0; j < u_mesh.dofs_per_cell(); ++j) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    p_v2d(element_p(i)), ux_v2d(element_u(j)), B_px(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    p_v2d(element_p(i)), uz_v2d(element_u(j)), B_pz(i, j)
+                ));
+            }
+        }
+
+        // Insert the computed values into the sparse matrix (lhs_coeffs) for velocity-pressure terms
+        for (int i = 0; i < u_mesh.dofs_per_cell(); ++i) {
+            for (int j = 0; j < p_mesh.dofs_per_cell(); ++j) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    ux_v2d(element_u(i)), p_v2d(element_p(j)), B_xp(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(element_u(i)), p_v2d(element_p(j)), B_zp(i, j)
+                ));
+            }
+        }
+
+        // Reset blocks
+        B_px.setZero();
+        B_pz.setZero();
+        B_xp.setZero();
+        B_zp.setZero();
+    }
+
+    // Track the number of elements inserted into the lhs_coeffs matrix
+    nof_pushed_elements = lhs_coeffs.size();
 }
 
-void pStokesProblem::assemble_incomp_block()
-{
-	Eigen::MatrixX<FloatType> node_coords_u, node_coords_p, qpoints_rs, qpoints_xz,
-		phi_rs, dphi_rs, dphi_xz, psi_rs, dpsi_rs, dpsi_xz;
-	Eigen::VectorX<FloatType> qweights, detJ_rs;
-	Eigen::VectorXi element_u, element_p;
-	
-	FEM2D::gauss_legendre_quadrature(
-		gp_incomp, u_mesh.cell_type(), qpoints_rs, qweights
-	);
+void pStokesProblem::assemble_fssa_vertical_block(
+    FloatType stab_param,
+    std::function<double(double, double)> force_x,
+    std::function<double(double, double)> force_z,
+    int gauss_precision
+) {
+    // Declare matrices and vectors for quadrature points, basis functions, and other required values
+    Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi edge_vi;
 
-	FEM2D::lagrange_basis(
-		p_mesh.degree(), p_mesh.cell_type(), qpoints_rs, psi_rs, dpsi_rs
-	);
+    // Retrieve quadrature points and weights
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM2D::lagrange_basis(
-		u_mesh.degree(), u_mesh.cell_type(), qpoints_rs, phi_rs, dphi_rs
-	);
+    // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, phi_r, dphi_r
+    );
 
-	detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
-	qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
-	dphi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), u_mesh.dofs_per_cell());
-	dpsi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), p_mesh.dofs_per_cell());
+    // Initialize matrices for storing quadrature points in the x-direction, determinant of the Jacobian, and derivative of basis functions
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        2*qpoints_r.rows(), u_mesh.dofs_per_edge()
+    );
 
-	Eigen::MatrixX<FloatType> B_px = Eigen::MatrixX<FloatType>::Zero(
-		p_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
-	);
-	Eigen::MatrixX<FloatType> B_pz = Eigen::MatrixX<FloatType>::Zero(
-		p_mesh.dofs_per_cell(), u_mesh.dofs_per_cell()
-	);
-	Eigen::MatrixX<FloatType> B_xp = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_cell(), p_mesh.dofs_per_cell()
-	);
-	Eigen::MatrixX<FloatType> B_zp = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_cell(), p_mesh.dofs_per_cell()
-	);
+    // Initialize matrices for the vertical and horizontal force contributions
+    Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
+    Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
 
-	for (int k = 0; k < u_mesh.cmat.rows(); k++) {
-		element_u = u_mesh.cmat.row(k);
-		element_p = p_mesh.cmat.row(k);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		node_coords_p = p_mesh.pmat(element_p, Eigen::all);
+    // Extract the indices of the surface edges from the mesh
+    std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(MESH2D::SURFACE_ID);
 
-		// TODO: only psi_rs is need; speed up by discard calculating everything else
-		FEM2D::map_to_reference_cell(
-			p_mesh.degree(), p_mesh.cell_type(), node_coords_p, qpoints_rs,
-			psi_rs, dpsi_rs, detJ_rs, qpoints_xz, dpsi_xz
-		);
+    // Loop over the surface edges to assemble the contributions to the stiffness matrices
+    for (int si : surf_edge_inds) {
+        // Get the node indices for the current edge and extract the node coordinates
+        edge_vi = u_mesh.emat(si, Eigen::all);
+        node_coords = u_mesh.pmat(edge_vi, Eigen::all);
 
-		FEM2D::map_to_reference_cell(
-			u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
-			phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
-		);
+        // Map the edge coordinates to the reference cell (local coordinates)
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords, qpoints_r,
+            phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
+        );
 
-		for (int q = 0; q < qpoints_rs.rows(); q++) {
-			int w = 2*q;
-			FloatType detJxW = ABS_FUNC(detJ_rs(q))*qweights(q);
-			for (int i = 0; i < p_mesh.dofs_per_cell(); i++) {
-				for (int j = 0; j < u_mesh.dofs_per_cell(); j++) {
-					B_px(i, j) += -psi_rs(q, i)*dphi_xz(w, j)*detJxW;
-					B_pz(i, j) += -psi_rs(q, i)*dphi_xz(w+1, j)*detJxW;
-				}
-			}
-			for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
-				for (int j = 0; j < p_mesh.dofs_per_cell(); j++) {
-					B_xp(i, j) += -dphi_xz(w, i)*psi_rs(q, j)*detJxW;
-					B_zp(i, j) += -dphi_xz(w+1, i)*psi_rs(q, j)*detJxW;
-				}
-			}
-		}
+        // Retrieve the surface normal vector components (nx, nz) for the current edge
+        FloatType nx = u_mesh.edge_normals(si, 0);
+        FloatType nz = u_mesh.edge_normals(si, 1);
 
-		for (int i = 0; i < p_mesh.dofs_per_cell(); i++) {
-			for (int j = 0; j < u_mesh.dofs_per_cell(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					p_v2d(element_p(i)),
-					ux_v2d(element_u(j)),
-					B_px(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					p_v2d(element_p(i)),
-					uz_v2d(element_u(j)),
-					B_pz(i, j)
-				));
-			}
-		}
-		for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
-			for (int j = 0; j < p_mesh.dofs_per_cell(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					ux_v2d(element_u(i)),
-					p_v2d(element_p(j)),
-					B_xp(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(element_u(i)),
-					p_v2d(element_p(j)),
-					B_zp(i, j)
-				));
-			}
-		}
+        // Loop over quadrature points in edge
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
+            FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
 
-		B_px.setZero();
-		B_pz.setZero();
-		B_xp.setZero();
-		B_zp.setZero();
-	}
-	nof_pushed_elements = lhs_coeffs.size();
+            // Compute the weighted Jacobian determinant (detJ * weight)
+            FloatType dFxW = ABS_FUNC(detJ_r(q)) * qweights(q);
+
+            // Loop over edge dofs and compute the matrix contributions
+            for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
+                for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
+                    A_xz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx;
+                    A_zz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz;
+                }
+            }
+        }
+
+        // Insert the contributions to the sparse matrix (lhs_coeffs) for the vertical block
+        for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
+            for (int j = 0; j < u_mesh.dofs_per_edge(); ++j) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(edge_vi(i)),
+                    ux_v2d(edge_vi(j)),
+                    A_xz(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(edge_vi(i)),
+                    uz_v2d(edge_vi(j)),
+                    A_zz(i, j)
+                ));
+            }
+        }
+
+        // Reset the blocks
+        A_xz.setZero();
+        A_zz.setZero();
+    }
+
+    // Track the number of elements inserted into the lhs_coeffs matrix
+    nof_pushed_elements = lhs_coeffs.size();
 }
 
-// TODO: add fx component to the weak form
-void pStokesProblem::assemble_fssa_vertical_block()
-{
-	Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi edge_vi;
+void pStokesProblem::assemble_fssa_normal_block(
+    FloatType stab_param,
+    std::function<double(double, double)> force_z,
+    int gauss_precision
+) {
+    // Declare matrices and vectors for quadrature points, basis functions, and other required values
+    Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi edge_vi;
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_fssa, qpoints_r, qweights
-	);
+    // Retrieve quadrature points and weights using Gauss-Legendre quadrature
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, phi_r, dphi_r
-	);
+    // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, phi_r, dphi_r
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		2*qpoints_r.rows(), u_mesh.dofs_per_edge()
-	);
+    // Initialize matrices for storing quadrature points in the x-direction, determinant of the Jacobian, and derivative of basis functions
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        2*qpoints_r.rows(), u_mesh.dofs_per_edge()
+    );
 
-	Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
-	Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
+    // Initialize matrices for stiffness matrix contributions
+    Eigen::MatrixX<FloatType> A_xx = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
+    Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
+    Eigen::MatrixX<FloatType> A_zx = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
+    Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
+        u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
+    );
 
-	std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(SURFACE_ID);
-	for (int si: surf_edge_inds) {
-		edge_vi = u_mesh.emat(si, Eigen::all);
-		node_coords = u_mesh.pmat(edge_vi, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords, qpoints_r,
-			phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
-		);
+    // Extract the indices of the surface edges from the mesh
+    std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(MESH2D::SURFACE_ID);
 
-		FloatType nx = u_mesh.edge_normals(si, 0);
-		FloatType nz = u_mesh.edge_normals(si, 1);
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
-			FloatType dFxW = ABS_FUNC(detJ_r(q))*qweights(q);
-			for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
-				for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
-					A_xz(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nx;
-					A_zz(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nz;
-				}
-			}
-		}
+    // Loop over the surface edges to assemble the contributions to the stiffness matrices
+    for (int si : surf_edge_inds) {
+        // Get the node indices for the current edge and extract the node coordinates
+        edge_vi = u_mesh.emat(si, Eigen::all);
+        node_coords_u = u_mesh.pmat(edge_vi, Eigen::all);
 
-		for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
-			for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(edge_vi(i)),
-					ux_v2d(edge_vi(j)),
-					A_xz(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(edge_vi(i)),
-					uz_v2d(edge_vi(j)),
-					A_zz(i, j)
-				));
-			}
-		}
+        // Map the edge coordinates to the reference cell (local coordinates)
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords_u, qpoints_r,
+            phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
+        );
 
-		A_xz.setZero();
-		A_zz.setZero();
-	}
-	nof_pushed_elements = lhs_coeffs.size();
+        // Retrieve the surface normal vector components (nx, nz) for the current edge
+        FloatType nz = sqrt(u_mesh.edge_normals(si, 1));
+        FloatType nx = u_mesh.edge_normals(si, 0) / nz;
+
+        // Loop over quadrature points in edge and assemble matrix contributions
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
+            FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
+
+            // Compute the weighted Jacobian determinant (detJ * weight)
+            FloatType dFxW = ABS_FUNC(detJ_r(q)) * qweights(q);
+
+            // Loop over edge dofs and compute the matrix contributions
+            for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
+                for (int j = 0; j < u_mesh.dofs_per_edge(); ++j) {
+                    A_xx(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nx;
+                    A_xz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nz;
+                    A_zx(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nx;
+                    A_zz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nz;
+                }
+            }
+        }
+
+        // Insert the contributions to the sparse matrix (lhs_coeffs) for the normal block
+        for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
+            for (int j = 0; j < u_mesh.dofs_per_edge(); ++j) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    ux_v2d(edge_vi(i)),
+                    ux_v2d(edge_vi(j)),
+                    A_xx(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    ux_v2d(edge_vi(i)),
+                    uz_v2d(edge_vi(j)),
+                    A_xz(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(edge_vi(i)),
+                    ux_v2d(edge_vi(j)),
+                    A_zx(i, j)
+                ));
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    uz_v2d(edge_vi(i)),
+                    uz_v2d(edge_vi(j)),
+                    A_zz(i, j)
+                ));
+            }
+        }
+
+        // Reset the matrices for the next iteration
+        A_xx.setZero();
+        A_xz.setZero();
+        A_zx.setZero();
+        A_zz.setZero();
+    }
+
+    // Track the number of elements inserted into the lhs_coeffs matrix
+    nof_pushed_elements = lhs_coeffs.size();
 }
 
-// TODO: add fx component to the weak form
-void pStokesProblem::assemble_fssa_normal_block()
-{
-	Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi edge_vi;
+void pStokesProblem::assemble_fssa_vertical_rhs(
+    FloatType stab_param,
+    std::function<double(double, double)> force_x,
+    std::function<double(double, double)> force_z,
+    std::function<double(double, double)> accum,
+    int gauss_precision
+) {
+    // Declare matrices and vectors for quadrature points, basis functions, and other required values
+    Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi edge_vi;
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_fssa, qpoints_r, qweights
-	);
+    // Retrieve quadrature points and weights using Gauss-Legendre quadrature
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, phi_r, dphi_r
-	);
+    // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, phi_r, dphi_r
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		2*qpoints_r.rows(), u_mesh.dofs_per_edge()
-	);
+    // Initialize matrices for storing quadrature points in the x-direction, determinant of the Jacobian, and derivative of basis functions
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        2 * qpoints_r.rows(), u_mesh.dofs_per_edge()
+    );
 
-	Eigen::MatrixX<FloatType> A_xx = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
-	Eigen::MatrixX<FloatType> A_xz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
-	Eigen::MatrixX<FloatType> A_zx = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
-	Eigen::MatrixX<FloatType> A_zz = Eigen::MatrixX<FloatType>::Zero(
-		u_mesh.dofs_per_edge(), u_mesh.dofs_per_edge()
-	);
+    // Extract the indices of the surface edges from the mesh
+    std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(MESH2D::SURFACE_ID);
 
-	std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(SURFACE_ID);
-	for (int si: surf_edge_inds) {
-		edge_vi = u_mesh.emat(si, Eigen::all);
-		node_coords_u = u_mesh.pmat(edge_vi, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords_u, qpoints_r,
-			phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
-		);
-		FloatType nz = sqrt(u_mesh.edge_normals(si, 1));
-		FloatType nx = u_mesh.edge_normals(si, 0)/nz;
+    // Loop over the surface edges to assemble contributions to the right-hand side vector (rhs_vec)
+    for (int si : surf_edge_inds) {
+        // Get the node indices for the current edge and extract the node coordinates
+        edge_vi = u_mesh.emat(si, Eigen::all);
+        node_coords_u = u_mesh.pmat(edge_vi, Eigen::all);
 
+        // Map the edge coordinates to the reference cell (local coordinates)
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords_u, qpoints_r,
+            phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
+        );
 
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
-			FloatType dFxW = ABS_FUNC(detJ_r(q))*qweights(q);
-			for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
-				for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
-					A_xx(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nx*nx;
-					A_xz(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nx*nz;
-					A_zx(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nz*nx;
-					A_zz(i, j) -= fssa_param*phi_r(q, i)*phi_r(q, j)*fz*dFxW*nz*nz;
-				}
-			}
-		}
+        // Retrieve the surface normal vector component (nz) for the current edge
+        FloatType nz = u_mesh.edge_normals(si, 1);
 
-		for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
-			for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					ux_v2d(edge_vi(i)),
-					ux_v2d(edge_vi(j)),
-					A_xx(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					ux_v2d(edge_vi(i)),
-					uz_v2d(edge_vi(j)),
-					A_xz(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(edge_vi(i)),
-					ux_v2d(edge_vi(j)),
-					A_zx(i, j)
-				));
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					uz_v2d(edge_vi(i)),
-					uz_v2d(edge_vi(j)),
-					A_zz(i, j)
-				));
-			}
-		}
+        // Loop over quadrature points in the edge
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
+            // Compute the force and accumulation values at the quadrature point
+            FloatType fx = force_x(qpoints_x(q, 0), qpoints_x(q, 1));
+            FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
+            FloatType ac = accum(qpoints_x(q, 0), qpoints_x(q, 1));
 
-		A_xx.setZero();
-		A_xz.setZero();
-		A_zx.setZero();
-		A_zz.setZero();
-	}
-	nof_pushed_elements = lhs_coeffs.size();
+            // Compute the weighted Jacobian determinant (detJ * weight)
+            FloatType dFxW = ABS_FUNC(detJ_r(q)) * qweights(q);
+
+            // Loop over edge dofs and update the right-hand side vector (rhs_vec) with the contributions
+            for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
+                rhs_vec(ux_v2d(edge_vi(i))) += stab_param * phi_r(q, i) * ac * fx * dFxW * nz;
+                rhs_vec(uz_v2d(edge_vi(i))) += stab_param * phi_r(q, i) * ac * fz * dFxW * nz;
+            }
+        }
+    }
 }
 
-void pStokesProblem::assemble_fssa_vertical_rhs() {
-	Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi edge_vi;
+void pStokesProblem::assemble_rhs_vec(
+    std::function<FloatType(FloatType, FloatType)> force_x,
+    std::function<FloatType(FloatType, FloatType)> force_z,
+    int gauss_precision
+) {
+    // Declare matrices and vectors for quadrature points, basis functions, and other required values
+    Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
+        phi_rs, dphi_rs, dphi_xz;
+    Eigen::VectorX<FloatType> qweights, detJ_rs;
+    Eigen::VectorXi element_u;
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_rhs, qpoints_r, qweights
-	);
+    // Retrieve quadrature points and weights using Gauss-Legendre quadrature for the mesh cells
+    FEM2D::gauss_legendre_quadrature(
+        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, phi_r, dphi_r
-	);
+    // Calculate Lagrange basis functions and their derivatives for the mesh cells
+    FEM2D::lagrange_basis(
+        u_mesh.degree(), u_mesh.cell_type(), qpoints_rs, phi_rs, dphi_rs
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		2*qpoints_r.rows(), u_mesh.dofs_per_edge()
-	);
+    // Initialize vectors for the determinant of the Jacobian and quadrature points in the local coordinates
+    detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
+    qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
+    dphi_xz = Eigen::MatrixX<FloatType>::Zero(2 * qpoints_rs.rows(), u_mesh.dofs_per_cell());
 
-	std::vector<int> surf_edge_inds = u_mesh.extract_edge_inds(SURFACE_ID);
-	for (int si: surf_edge_inds) {
-		edge_vi = u_mesh.emat(si, Eigen::all);
-		node_coords_u = u_mesh.pmat(edge_vi, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords_u, qpoints_r,
-			phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
-		);
-		FloatType nz = u_mesh.edge_normals(si, 1);
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType fx = force_x(qpoints_x(q, 0), qpoints_x(q, 1));
-			FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
-			FloatType ac = fssa_accum(qpoints_x(q, 0), qpoints_x(q, 1));
-			FloatType dFxW = ABS_FUNC(detJ_r(q))*qweights(q);
-			for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
-				rhs_vec(ux_v2d(edge_vi(i))) += fssa_param*phi_r(q, i)*ac*fx*dFxW*nz;
-				rhs_vec(uz_v2d(edge_vi(i))) += fssa_param*phi_r(q, i)*ac*fz*dFxW*nz;
-			}
-		}
-	}
-}
+    // Loop over the mesh elements to assemble the contributions to the right-hand side vector (rhs_vec)
+    for (int k = 0; k < u_mesh.cmat.rows(); k++) {
+        // Get the node indices for the current element and extract the node coordinates
+        element_u = u_mesh.cmat.row(k);
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
 
-void pStokesProblem::assemble_rhs_vec() {
-	Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
-		phi_rs, dphi_rs, dphi_xz;
-	Eigen::VectorX<FloatType> qweights, detJ_rs;
-	Eigen::VectorXi element_u;
+        // Map the element coordinates to the reference cell (local coordinates)
+        FEM2D::map_to_reference_cell(
+            u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
+            phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
+        );
 
-	FEM2D::gauss_legendre_quadrature(
-		gp_rhs, u_mesh.cell_type(), qpoints_rs, qweights
-	);
+        // Loop over the quadrature points to compute the contributions to rhs_vec
+        for (int q = 0; q < qpoints_rs.rows(); ++q) {
+            // Compute the weighted Jacobian determinant (detJ * weight)
+            FloatType detJxW = ABS_FUNC(detJ_rs(q)) * qweights(q);
 
-	FEM2D::lagrange_basis(
-		u_mesh.degree(), u_mesh.cell_type(), qpoints_rs, phi_rs, dphi_rs
-	);
+            // Loop over the degrees of freedom (DOFs) for the current element and update the right-hand side vector (rhs_vec)
+            for (int i = 0; i < u_mesh.dofs_per_cell(); ++i) {
+                // Add the contributions for the x-direction force
+                rhs_vec(ux_v2d(element_u(i))) += (
+                    force_x(qpoints_xz(q, 0), qpoints_xz(q, 1)) * phi_rs(q, i)
+                ) * detJxW;
 
-	detJ_rs = Eigen::VectorX<FloatType>::Zero(qpoints_rs.rows());
-	qpoints_xz = Eigen::MatrixX<FloatType>::Zero(qpoints_rs.rows(), 2);
-	dphi_xz = Eigen::MatrixX<FloatType>::Zero(2*qpoints_rs.rows(), u_mesh.dofs_per_cell());
-
-	for (int k = 0; k < u_mesh.cmat.rows(); k++) {
-		element_u = u_mesh.cmat.row(k);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		FEM2D::map_to_reference_cell(
-			u_mesh.degree(), u_mesh.cell_type(), node_coords_u, qpoints_rs,
-			phi_rs, dphi_rs, detJ_rs, qpoints_xz, dphi_xz
-		);
-
-		for (int q = 0; q < qpoints_rs.rows(); q++) {
-			FloatType detJxW = ABS_FUNC(detJ_rs(q))*qweights(q);
-			for (int i = 0; i < u_mesh.dofs_per_cell(); i++) {
-				rhs_vec(ux_v2d(element_u(i))) += (
-					force_x(qpoints_xz(q, 0), qpoints_xz(q, 1))*phi_rs(q, i)
-				)*detJxW;
-				rhs_vec(uz_v2d(element_u(i))) += (
-					force_z(qpoints_xz(q, 0), qpoints_xz(q, 1))*phi_rs(q, i)
-				)*detJxW;
-			}
-		}
-	}
+                // Add the contributions for the z-direction force
+                rhs_vec(uz_v2d(element_u(i))) += (
+                    force_z(qpoints_xz(q, 0), qpoints_xz(q, 1)) * phi_rs(q, i)
+                ) * detJxW;
+            }
+        }
+    }
 }
 
 void pStokesProblem::commit_lhs_mat()
 {
-	lhs_mat.setFromTriplets(lhs_coeffs.begin(), lhs_coeffs.end());
+    lhs_mat.setFromTriplets(lhs_coeffs.begin(), lhs_coeffs.end());
 }
 
-void pStokesProblem::apply_standard_dirichlet_bc()
+void pStokesProblem::apply_zero_dirichlet_bc(int boundary_ux_id, int boundary_uz_id)
 {
-	// Constrained dofs for standard bc case (no slip on bed and impenetrability on sides)
-	int boundary_ux = NORTH_WEST_ID | WEST_ID | BED_ID | EAST_ID | NORTH_EAST_ID;
-	int boundary_uz = BED_ID;
-
-	// Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
-	for (int col = 0; col < lhs_mat.outerSize(); ++col)
-		if (
-			ux_d2v(col) != -1 && u_mesh.dimat(u_mesh.d2v(ux_d2v(col))) & boundary_ux ||
-			uz_d2v(col) != -1 && u_mesh.dimat(u_mesh.d2v(uz_d2v(col))) & boundary_uz
-		) {
-			// Eliminate column
-			for (Eigen::SparseMatrix<FloatType>::InnerIterator it(lhs_mat, col); it; ++it) {
-				it.valueRef() = 0.0;
-			}
-			lhs_mat.coeffRef(col, col) = 1.0;
-			rhs_vec(col) = 0.0; // Dirichlet bc
-		} else {
-			for (Eigen::SparseMatrix<FloatType>::InnerIterator it(lhs_mat, col); it; ++it) {
-				int row = it.row();
-				if (
-					ux_d2v(row) != -1 && u_mesh.dimat(u_mesh.d2v(ux_d2v(row))) & boundary_ux ||
-					uz_d2v(row) != -1 && u_mesh.dimat(u_mesh.d2v(uz_d2v(row))) & boundary_uz
-				) {
-					// Eliminate row
-					it.valueRef() = 0.0;
-				}
-			}
-		}
-	prune_lhs();
+    // Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
+    for (int col = 0; col < lhs_mat.outerSize(); ++col)
+        // Check if the column corresponds to a boundary node for either ux or uz 
+        if (
+            ux_d2v(col) != -1 && u_mesh.dimat(ux_d2v(col)) & boundary_ux_id ||
+            uz_d2v(col) != -1 && u_mesh.dimat(uz_d2v(col)) & boundary_uz_id
+        ) {
+            // Eliminate column
+            for (Eigen::SparseMatrix<FloatType>::InnerIterator it(lhs_mat, col); it; ++it) {
+                it.valueRef() = 0.0;
+            }
+            lhs_mat.coeffRef(col, col) = 1.0;
+            rhs_vec(col) = 0.0; // Zero Dirichlet bc
+        } else {
+            for (Eigen::SparseMatrix<FloatType>::InnerIterator it(lhs_mat, col); it; ++it) {
+                int row = it.row();
+                // Check if the row corresponds to a boundary node for either ux or uz
+                if (
+                    ux_d2v(row) != -1 && u_mesh.dimat(ux_d2v(row)) & boundary_ux_id ||
+                    uz_d2v(row) != -1 && u_mesh.dimat(uz_d2v(row)) & boundary_uz_id
+                ) {
+                    // Eliminate row
+                    it.valueRef() = 0.0;
+                }
+            }
+        }
+    prune_lhs(1e-12);
 }
 
 void pStokesProblem::apply_dirichlet_bc(
-	const int boundary_part,
-	const int velocity_component,
-	std::function<FloatType(FloatType, FloatType)> u_func
+    const int boundary_part,
+    const int velocity_component,
+    std::function<FloatType(FloatType, FloatType)> u_func
 ) {
-	// Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
-	int *outer_end = lhs_mat.outerIndexPtr() + lhs_mat.rows();
-	int col = 0;
-	for (
-		int *outer_p = lhs_mat.outerIndexPtr();
-		outer_p != outer_end;
-		outer_p++
-	) {
-		int nnz = *(outer_p + 1) - *outer_p;
-		for (int i = 0; i < nnz; i++) {
-			int row = *(lhs_mat.innerIndexPtr() + *outer_p + i);
-			if (velocity_component == HORIZONTAL && ux_d2v(row) != -1) {
-				if (u_mesh.dimat(u_mesh.d2v(ux_d2v(row))) & boundary_part) {
-					FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
-					*val_ptr = 0.0;
-				}
-			}
-			else if (velocity_component == VERTICAL && uz_d2v(row) != -1) {
-				if (u_mesh.dimat(u_mesh.d2v(uz_d2v(row))) & boundary_part) {
-					FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
-					*val_ptr = 0.0;
-				}
-			}
-		}
-		col++;
-	}
+    // Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
+    int *outer_end = lhs_mat.outerIndexPtr() + lhs_mat.rows();
+    int col = 0;
+    for (
+        int *outer_p = lhs_mat.outerIndexPtr();
+        outer_p != outer_end;
+        outer_p++
+    ) {
+        int nnz = *(outer_p + 1) - *outer_p;
+        for (int i = 0; i < nnz; i++) {
+            int row = *(lhs_mat.innerIndexPtr() + *outer_p + i);
+            if (velocity_component == HORIZONTAL && ux_d2v(row) != -1) {
+                if (u_mesh.dimat(ux_d2v(row)) & boundary_part) {
+                    FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
+                    *val_ptr = 0.0;
+                }
+            }
+            else if (velocity_component == VERTICAL && uz_d2v(row) != -1) {
+                if (u_mesh.dimat(uz_d2v(row)) & boundary_part) {
+                    FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
+                    *val_ptr = 0.0;
+                }
+            }
+        }
+        col++;
+    }
 
-	// Loop over all nnz elements and set diagonals corresponding to boundary nodes to one
-	col = 0;
-	for (
-		int *outer_p = lhs_mat.outerIndexPtr();
-		outer_p != outer_end;
-		outer_p++
-	) {
-		if (velocity_component == HORIZONTAL && ux_d2v(col) != -1) {
-			if (u_mesh.dimat(u_mesh.d2v(ux_d2v(col))) & boundary_part) {
-				FloatType x = u_mesh.pmat(u_mesh.d2v(ux_d2v(col)), 0);
-				FloatType z = u_mesh.pmat(u_mesh.d2v(ux_d2v(col)), 1);
-				lhs_mat.coeffRef(col, col) = 1.0;  // FIXME: more efficient to use insert?
-				rhs_vec(col) = u_func(x, z);  // Dirichlet bc
-			}
-		}
-		else if (velocity_component == VERTICAL && uz_d2v(col) != -1) {	
-			if (u_mesh.dimat(u_mesh.d2v(uz_d2v[col])) & boundary_part) {
-				FloatType x = u_mesh.pmat(u_mesh.d2v(uz_d2v(col)), 0);
-				FloatType z = u_mesh.pmat(u_mesh.d2v(uz_d2v(col)), 1);
-				lhs_mat.coeffRef(col, col) = 1.0; // FIXME: more efficient to use insert?
-				rhs_vec(col) = u_func(x, z);  // Dirichlet bc
-			}
-		}
-		col++;
-	}
+    // Loop over all nnz elements and set diagonals corresponding to boundary nodes to one
+    col = 0;
+    for (
+        int *outer_p = lhs_mat.outerIndexPtr();
+        outer_p != outer_end;
+        outer_p++
+    ) {
+        if (velocity_component == HORIZONTAL && ux_d2v(col) != -1) {
+            if (u_mesh.dimat(ux_d2v(col)) & boundary_part) {
+                FloatType x = u_mesh.pmat(ux_d2v(col), 0);
+                FloatType z = u_mesh.pmat(ux_d2v(col), 1);
+                lhs_mat.coeffRef(col, col) = 1.0;
+                rhs_vec(col) = u_func(x, z);  // Dirichlet bc
+            }
+        }
+        else if (velocity_component == VERTICAL && uz_d2v(col) != -1) {
+            if (u_mesh.dimat(uz_d2v[col]) & boundary_part) {
+                FloatType x = u_mesh.pmat(uz_d2v(col), 0);
+                FloatType z = u_mesh.pmat(uz_d2v(col), 1);
+                lhs_mat.coeffRef(col, col) = 1.0;
+                rhs_vec(col) = u_func(x, z);  // Dirichlet bc
+            }
+        }
+        col++;
+    }
 }
 
-void pStokesProblem::prune_lhs() {
-	// NOTE: Pruning zeros is a costly operation and should only be done once.
-	lhs_mat.prune(prune_threshold, 1);
+void pStokesProblem::prune_lhs(FloatType threshold)
+{
+    // NOTE: Pruning zeros is a costly operation and should only be done once.
+    lhs_mat.prune(threshold, 1);
 }
 
 void pStokesProblem::solve_linear_system()
 {
-	if (linear_solver == SPARSE_LU) {
-		Eigen::SparseLU<Eigen::SparseMatrix<FloatType>> solver;
-		solver.analyzePattern(lhs_mat);
-		solver.factorize(lhs_mat);
-		w_vec = solver.solve(rhs_vec);
-	} else if (linear_solver == BICGSTAB) {
-		Eigen::BiCGSTAB<Eigen::SparseMatrix<FloatType>> solver;
-		solver.compute(lhs_mat);
-		w_vec = solver.solve(rhs_vec);
-	} else {
-		// TODO: throw exception
-	}
+    Eigen::SparseLU<Eigen::SparseMatrix<FloatType>> solver;
+    solver.analyzePattern(lhs_mat);
+    solver.factorize(lhs_mat);
+    w_vec = solver.solve(rhs_vec);
 }
 
-void pStokesProblem::solve_picard(bool reset_linear_system)
-{
-	Eigen::SparseMatrix<FloatType> M = FEM2D::assemble_mass_matrix(u_mesh, u_mesh.degree() + 1);
-	assemble_incomp_block();
-	if (fssa_version == FSSA_VERTICAL)
-		assemble_fssa_vertical_block();
-	else if (fssa_version == FSSA_NORMAL)
-		assemble_fssa_normal_block();
-	assemble_rhs_vec();
-	int nof_pushed_elements_before_stress_assembly = nof_pushed_elements;
+void pStokesProblem::solve_nonlinear_system_picard(
+    FloatType A, FloatType n_i, FloatType eps_reg_2,
+    int fssa_version, FloatType fssa_param,
+    std::function<FloatType(FloatType, FloatType)> force_x,
+    std::function<FloatType(FloatType, FloatType)> force_z,
+    int ux_boundary_id, int uz_boundary_id,
+    int max_iter, FloatType stol, int gauss_precision
+) {
+    // Assemble incompressibility block
+    assemble_incomp_block(gauss_precision);
 
-	FloatType error_abs;
-	FloatType area_sqrt = sqrt(FEM2D::calculate_area(u_mesh, u_mesh.degree() + 1));
+    // Assemble FSSA block according to fssa version
+    if (fssa_version == FSSA_VERTICAL)
+        assemble_fssa_vertical_block(fssa_param, force_x, force_z, gauss_precision);
+    else if (fssa_version == FSSA_NORMAL)
+        assemble_fssa_normal_block(fssa_param, force_z, gauss_precision);
 
-	FEMFunction2D ux_old = velocity_x();
-	FEMFunction2D uz_old = velocity_z();
+    // Assemble the right-hand side vector
+    assemble_rhs_vec(force_x, force_z, gauss_precision);
+    int nof_pushed_elements_before_stress_assembly = nof_pushed_elements;
 
-	// Picard loop
-	int ip = 0;
-	do {
-		lhs_coeffs.resize(nof_pushed_elements_before_stress_assembly);
-		nof_pushed_elements = nof_pushed_elements_before_stress_assembly;
-		assemble_stress_block();
-		commit_lhs_mat();
+    // Initialize error and old/new velocity functions for Picard iteration
+    FloatType error_step = 0.0;
+    FEMFunction2D ux_old_func = velocity_x(), uz_old_func = velocity_z();
+    FEMFunction2D ux_new_func = velocity_x(), uz_new_func = velocity_z();
+    FEMFunction2D ex_func(u_mesh), ez_func(u_mesh);
+    // Assemble the mass matrix for calculating the L2 error
+    Eigen::SparseMatrix<FloatType> M = FEM2D::assemble_mass_matrix(u_mesh, u_mesh.degree() + 1);
 
-		apply_standard_dirichlet_bc();
-		solve_linear_system();
+    // Picard iteration loop
+    int ip = 0;
+    do {
+        // Only need to reassemble stress block between iterations
+        lhs_coeffs.resize(nof_pushed_elements_before_stress_assembly);
+        nof_pushed_elements = nof_pushed_elements_before_stress_assembly;
+        // Assemble stress block and commit
+        assemble_stress_block(A, n_i, eps_reg_2, gauss_precision);
+        commit_lhs_mat();
 
-		// Estimate the error
-		FEMFunction2D ux = velocity_x();
-		FEMFunction2D uz = velocity_z();
-		FEMFunction2D ex_func = ux - ux_old;
-		FEMFunction2D ez_func = uz - uz_old;
-		FloatType ex = FEM2D::L2_norm(ex_func, M);
-		FloatType ez = FEM2D::L2_norm(ez_func, M);
-		error_abs = sqrt(ex*ex + ez*ez)/area_sqrt;
-		logger.log_msg((boost::format{"<pStokes> Picard iteration %d: e(abs) = %g"} %(ip+1) %error_abs).str(), TRACE);
+        // Apply homogenous Dirichlet BC and solve linear system
+        apply_zero_dirichlet_bc(ux_boundary_id, uz_boundary_id);
+        solve_linear_system();
 
-		ux_old.vals = ux.vals;
-		uz_old.vals = uz.vals;
-		ip++;
-	} while (error_abs > picard_atol && ip < picard_max_iter);
+        // Compute the step error and check convergence
+        ux_new_func.vals = w_vec(ux_v2d);
+        uz_new_func.vals = w_vec(uz_v2d);
+        ex_func.vals = ux_new_func.vals - ux_old_func.vals;
+        ez_func.vals = uz_new_func.vals - uz_old_func.vals;
+        FloatType ux = ux_new_func.L2_norm();
+        FloatType uz = uz_new_func.L2_norm();
+        FloatType ex = ex_func.L2_norm();
+        FloatType ez = ez_func.L2_norm();
+        error_step = sqrt((ex*ex + ez*ez)/(ux*ux + uz*uz));
 
-	logger.log_msg("-------------------------------------", INFO);
-	logger.log_msg("********** pStokes Summary **********", INFO);
-	logger.log_msg("-------------------------------------", INFO);
+        // Log iteration information
+        logger.log_msg((boost::format{"<pStokes> Picard iteration %d: r(step) = %g"} %(ip+1) %error_step).str(), TRACE);
 
-	logger.log_msg((boost::format{"Picard solver finished in %d iterations"} %ip).str(), INFO);
-	logger.log_msg((boost::format{"e (abs): %.4g"} % (error_abs)).str(), INFO);
-	logger.log_msg((boost::format{"min ux, max ux: %.4g, %.4g m/yr"} % (1e3*w_vec(ux_v2d).minCoeff()) % (1e3*w_vec(ux_v2d).maxCoeff())).str(), INFO);
-	logger.log_msg((boost::format{"min uz, max uz: %.4g, %.4g m/yr"} % (1e3*w_vec(uz_v2d).minCoeff()) % (1e3*w_vec(uz_v2d).maxCoeff())).str(), INFO);
-	logger.log_msg((boost::format{"min p, max p: %.4g, %.4g MPa"} % (w_vec(p_v2d).minCoeff()) % (w_vec(p_v2d).maxCoeff())).str(), INFO);
-	logger.log_msg("-------------------------------------", INFO);
+        // Update old functions for the next iteration
+        ux_old_func.assign(ux_new_func);
+        uz_old_func.assign(uz_new_func);
+        ++ip;
+    } while (error_step > stol && ip < max_iter);
 
-	if (reset_linear_system)
-		reset_system();
+    // Log summary after solving
+    logger.log_msg("-------------------------------------", INFO);
+    logger.log_msg("********** pStokes Summary **********", INFO);
+    logger.log_msg("-------------------------------------", INFO);
+    logger.log_msg((boost::format{"Picard solver finished in %d iterations"} %ip).str(), INFO);
+    logger.log_msg((boost::format{"r (step): %.4g"} % (error_step)).str(), INFO);
+    logger.log_msg((boost::format{"min ux, max ux: %.4g, %.4g m/yr"} % (1e3*w_vec(ux_v2d).minCoeff()) % (1e3*w_vec(ux_v2d).maxCoeff())).str(), INFO);
+    logger.log_msg((boost::format{"min uz, max uz: %.4g, %.4g m/yr"} % (1e3*w_vec(uz_v2d).minCoeff()) % (1e3*w_vec(uz_v2d).maxCoeff())).str(), INFO);
+    logger.log_msg((boost::format{"min p, max p: %.4g, %.4g MPa"} % (w_vec(p_v2d).minCoeff()) % (w_vec(p_v2d).maxCoeff())).str(), INFO);
+    logger.log_msg("-------------------------------------", INFO);
+
+    // Clear left-hand side matrix and right-hand side vector
+    reset_system();
 }
-
 FEMFunction2D pStokesProblem::velocity_x()
 {
-	FEMFunction2D ux_fem_func(u_mesh);
-	ux_fem_func.vals = w_vec(ux_v2d);
-	return ux_fem_func;
+    FEMFunction2D ux_fem_func(u_mesh);
+    ux_fem_func.vals = w_vec(ux_v2d);
+    return ux_fem_func;
 }
 
 FEMFunction2D pStokesProblem::velocity_z()
 {
-	FEMFunction2D uz_fem_func(u_mesh);
-	uz_fem_func.vals = w_vec(uz_v2d);
-	return uz_fem_func;
+    FEMFunction2D uz_fem_func(u_mesh);
+    uz_fem_func.vals = w_vec(uz_v2d);
+    return uz_fem_func;
 }
 
 FEMFunction2D pStokesProblem::pressure()
 {
-	FEMFunction2D p_fem_func(p_mesh);
-	p_fem_func.vals = w_vec(p_v2d);
-	return p_fem_func;
+    FEMFunction2D p_fem_func(p_mesh);
+    p_fem_func.vals = w_vec(p_v2d);
+    return p_fem_func;
 }
 
 void pStokesProblem::reset_lhs()
 {
-	lhs_coeffs.clear();
-	nof_pushed_elements = 0;
+    lhs_coeffs.clear();
+    nof_pushed_elements = 0;
 }
 
 void pStokesProblem::reset_rhs()
 {
-	rhs_vec.setZero();
+    rhs_vec.setZero();
 }
 
 void pStokesProblem::reset_system()
 {
-	reset_lhs();
-	reset_rhs();
+    reset_lhs();
+    reset_rhs();
+}
+
+int pStokesProblem::log_level()
+{
+    return logger.log_level();
+}
+
+void pStokesProblem::set_log_level(int value)
+{
+    logger.set_log_level(value);
 }

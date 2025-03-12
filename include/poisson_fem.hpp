@@ -1,91 +1,157 @@
 #pragma once
+#define EIGEN_SPARSEMATRIX_PLUGIN <eigen_spmat_addons.hpp>
 
 #include <vector>
 #include <functional>
 #include <fem_function_2d.hpp>
-#define EIGEN_SPARSEMATRIX_PLUGIN <eigen_spmat_addons.hpp>
 #include <Eigen/Sparse>
 
+/**
+ * @class PoissonProblem
+ * @brief Solves the Poisson equation using the finite element method (FEM).
+ *
+ * This class constructs and solves the weak form of the Poisson equation on a given structured mesh.
+ * It supports various boundary conditions and allows assembly of stiffness, mass, Neumann, and Robin terms.
+ */
 class PoissonProblem {
 
-	private:
-		int n_dofs;
+private:
+    int n_dofs; ///< Number of degrees of freedom in the system.
 
-	public:
-		std::vector<int> free_dofs;
-		std::vector<int> fixed_dofs;
+public:
+    std::vector<int> free_dofs; ///< Indices of free degrees of freedom.
+    std::vector<int> fixed_dofs; ///< Indices of fixed degrees of freedom (Dirichlet boundary conditions).
 
-		PoissonProblem(int nx, int nz, int deg, int cell_type);
-		
-		StructuredMesh mesh;
-		std::vector<Eigen::Triplet<FloatType>> lhs_coeffs;
+    /**
+     * @brief Constructs a PoissonProblem instance on a given structured mesh.
+     * @param mesh The finite element mesh to be used for solving the problem.
+     */
+    explicit PoissonProblem(StructuredMesh &mesh);
 
-		Eigen::SparseMatrix<FloatType> lhs_mat;
-		Eigen::SparseMatrix<FloatType> lhs_mat_free;
-		Eigen::SparseMatrix<FloatType> lhs_mat_fixed;
-		Eigen::VectorX<FloatType> bc_vec;
-		Eigen::VectorX<FloatType> rhs_vec;
-		Eigen::VectorX<FloatType> rhs_vec_free;
-		Eigen::VectorX<FloatType> sol_vec_free;
-		Eigen::VectorX<FloatType> sol_vec;
+    StructuredMesh &mesh; ///< Reference to the structured mesh.
 
-		void reset();
-		void assemble_stiffness_block(
-			std::function<FloatType(FloatType, FloatType)> alpha,
-			std::function<FloatType(FloatType, FloatType)> beta,
-			int gp
-		);
-		void assemble_mass_block(
-			std::function<FloatType(FloatType, FloatType)> beta,
-			int gauss_precision
-		);
-		void assemble_FSSA_block(
-			FEMFunction2D &f,
-			FloatType theta,
-			FloatType dt,
-			int gp
-		);
-		void assemble_robin_block(
-			std::function<FloatType(FloatType, FloatType)> a_robin,
-			std::function<FloatType(FloatType, FloatType)> b_robin,
-			std::function<FloatType(FloatType, FloatType)> g_robin,
-			int boundary_id,
-			int gauss_precision
-		);
-		void commit_lhs_mat();
+    std::vector<Eigen::Triplet<FloatType>> lhs_coeffs; ///< Storage for triplet coefficients of the system matrix.
 
-		void assemble_force_rhs(
-			std::function<FloatType(FloatType, FloatType)> f,
-			int gauss_precision
-		);
+    Eigen::SparseMatrix<FloatType> lhs_mat; ///< Global left-hand-side (LHS) matrix.
+    Eigen::SparseMatrix<FloatType> lhs_mat_free; ///< LHS matrix for free degrees of freedom.
+    Eigen::SparseMatrix<FloatType> lhs_mat_fixed; ///< LHS matrix for fixed degrees of freedom.
 
-		void assemble_force_rhs(
-			FEMFunction2D &f,
-			int gauss_precision
-		);
+    Eigen::VectorX<FloatType> bc_vec; ///< Vector containing boundary condition values.
+    Eigen::VectorX<FloatType> rhs_vec; ///< Right-hand-side (RHS) vector of the system.
+    Eigen::VectorX<FloatType> rhs_vec_free; ///< RHS vector restricted to free DOFs.
+    Eigen::VectorX<FloatType> sol_vec_free; ///< Solution vector for free DOFs.
+    Eigen::VectorX<FloatType> sol_vec; ///< Complete solution vector.
 
-		void assemble_neumann_rhs(
-			std::function<FloatType(FloatType, FloatType)> g_neumann,
-			int boundary_id,
-			int gauss_precision
-		);
+    /**
+     * @brief Assembles the stiffness matrix using given material properties.
+     * @param alpha Diffusion coefficient function.
+     * @param beta Reaction coefficient function.
+     * @param gp Number of Gauss points used for integration.
+     */
+    void assemble_stiffness_block(
+        std::function<FloatType(FloatType, FloatType)> alpha,
+        std::function<FloatType(FloatType, FloatType)> beta,
+        int gp
+    );
 
-		void assemble_robin_rhs(
-			std::function<FloatType(FloatType, FloatType)> b_robin,
-			std::function<FloatType(FloatType, FloatType)> g_robin,
-			int boundary_id,
-			int gauss_precision
-		);
+    /**
+     * @brief Assembles the mass matrix using a given density function.
+     * @param gamma Mass coefficient function.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_mass_block(
+        std::function<FloatType(FloatType, FloatType)> gamma,
+        int gauss_precision
+    );
 
-		void apply_zero_dirichlet_bc(int boundary_id);
-		void apply_dirichlet_bc(
-			int boundary_id,
-			std::function<FloatType(FloatType, FloatType)> g_dirichlet
-		);
-		void apply_robin_neumann_bc();
+    /**
+     * @brief Assembles the Robin boundary condition contribution to the system matrix.
+     * @param a_robin Coefficient for the Robin term.
+     * @param b_robin Coefficient for the boundary term.
+     * @param g_robin Function representing the boundary condition.
+     * @param boundary_id Identifier for the boundary segment.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_robin_block(
+        std::function<FloatType(FloatType, FloatType)> a_robin,
+        std::function<FloatType(FloatType, FloatType)> b_robin,
+        std::function<FloatType(FloatType, FloatType)> g_robin,
+        int boundary_id,
+        int gauss_precision
+    );
 
-		FEMFunction2D solution();
+    /**
+     * @brief Converts the assembled triplet list into a sparse matrix format.
+     */
+    void commit_lhs_mat();
 
-		void solve_linear_system(std::string sp_solver_name);
-		void reset_lhs();
+    /**
+     * @brief Assembles the force term in the right-hand-side vector.
+     * @param f Function representing the source term.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_force_rhs(
+        std::function<FloatType(FloatType, FloatType)> f,
+        int gauss_precision
+    );
+
+    /**
+     * @brief Overloaded function for assembling the force term using a FEMFunction2D.
+     * @param f FEMFunction2D object representing the source term.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_force_rhs(FEMFunction2D &f, int gauss_precision);
+
+    /**
+     * @brief Assembles the Neumann boundary condition contribution to the RHS vector.
+     * @param g_neumann Function representing the Neumann condition.
+     * @param boundary_id Identifier for the boundary segment.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_neumann_rhs(
+        std::function<FloatType(FloatType, FloatType)> g_neumann,
+        int boundary_id,
+        int gauss_precision
+    );
+
+    /**
+     * @brief Assembles the Robin boundary condition contribution to the RHS vector.
+     * @param b_robin Coefficient function for the Robin term.
+     * @param g_robin Function representing the boundary condition.
+     * @param boundary_id Identifier for the boundary segment.
+     * @param gauss_precision Number of Gauss points used for integration.
+     */
+    void assemble_robin_rhs(
+        std::function<FloatType(FloatType, FloatType)> b_robin,
+        std::function<FloatType(FloatType, FloatType)> g_robin,
+        int boundary_id,
+        int gauss_precision
+    );
+
+    /**
+     * @brief Applies a Dirichlet boundary condition to a specified boundary.
+     * @param g_dirichlet Function representing the Dirichlet condition.
+     * @param boundary_id Identifier for the boundary segment.
+     */
+    void apply_dirichlet_bc(
+        std::function<FloatType(FloatType, FloatType)> g_dirichlet,
+        int boundary_id
+    );
+
+    /**
+     * @brief Solves the linear system of equations for the FEM solution.
+     */
+    void solve_linear_system();
+
+    /**
+     * @brief Retrieves the computed solution as a FEM function.
+     * @return FEMFunction2D representing the solution.
+     */
+    FEMFunction2D solution();
+
+    /**
+     * @brief Resets the system matrices and vectors.
+     */
+    void reset_system();
 };
+

@@ -2,294 +2,337 @@
 #include <fem_1d.hpp>
 
 FreeSurfaceProblem::FreeSurfaceProblem(
-	IntervalMesh &h_mesh, IntervalMesh &u_mesh
-) : h_mesh(h_mesh), u_mesh(u_mesh), ac_fem_func(h_mesh)
+    IntervalMesh &h_mesh, IntervalMesh &u_mesh
+) : h_mesh(h_mesh), u_mesh(u_mesh)
 {
-	lhs_mat = Eigen::SparseMatrix<FloatType>(
-		h_mesh.nof_dofs(), h_mesh.nof_dofs()
-	);
-	rhs_vec = Eigen::VectorX<FloatType>::Zero(h_mesh.nof_dofs());
-	zs_vec = h_mesh.pmat(Eigen::all, 1);
+    // Initialize the left-hand side matrix and right-hand side vector.
+    lhs_mat = Eigen::SparseMatrix<FloatType>(
+        h_mesh.nof_dofs(), h_mesh.nof_dofs()
+    );
+    rhs_vec = Eigen::VectorX<FloatType>::Zero(h_mesh.nof_dofs());
+    zs_vec = h_mesh.pmat(Eigen::all, 1);
+    lhs_coeffs.reserve((2*h_mesh.degree()+1)*h_mesh.nof_dofs());
 }
 
-void FreeSurfaceProblem::set_accumulation(const Eigen::VectorX<FloatType> &ac_vec)
+void FreeSurfaceProblem::assemble_lhs_explicit(int gauss_precision)
 {
-	ac_fem_func.vals = ac_vec;
-}
+    // Local variables for storing matrix and vector data during assembly.
+    Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi element;
 
-void FreeSurfaceProblem::assemble_lhs_explicit() {
-	lhs_coeffs.clear();
-	lhs_coeffs.reserve((2*h_mesh.degree()+1)*h_mesh.nof_dofs());
+    // Perform Gauss-Legendre quadrature for the given precision.
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi element;
-	
-	FEM1D::gauss_legendre_quadrature(
-		gp_lhs, qpoints_r, qweights
-	);
+    // Generate Lagrange basis functions for the finite element degree.
+    FEM1D::lagrange_basis(
+        h_mesh.degree(), qpoints_r, phi_r, dphi_r
+    );
 
-	FEM1D::lagrange_basis(
-		h_mesh.degree(), qpoints_r, phi_r, dphi_r
-	);
+    // Initialize matrices and vectors for mapping and calculation.
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), h_mesh.dofs_per_cell()
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), h_mesh.dofs_per_cell()
-	);
+    // Initialize the matrix for each element.
+    Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
+        h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
+    );
 
-	Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
-		h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
-	);
+    // Loop over cells and compute the contribution to the LHS matrix.
+    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+        element = h_mesh.cmat(ci, Eigen::all);
+        node_coords = h_mesh.pmat(element, Eigen::all);
+        FEM1D::map_to_reference_cell(
+            h_mesh.degree(), node_coords, qpoints_r,
+            phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
+        );
 
-	for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
-		element = h_mesh.cmat(ci, Eigen::all);
-		node_coords = h_mesh.pmat(element, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			h_mesh.degree(), node_coords, qpoints_r,
-			phi_r, dphi_r, detJ_r, qpoints_x, dphi_x
-		);
+        // Integrate over quadrature points to compute the matrix A.
+        for (int q = 0; q < qpoints_r.rows(); q++) {
+            FloatType detJxW = qweights(q)*detJ_r(q);
+            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+                for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+                    A(i, j) += phi_r(q, i)*phi_r(q, j)*detJxW;
+                }
+            }
+        }
 
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType detJxW = qweights(q)*detJ_r(q);
-			for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-				for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
-					A(i, j) += phi_r(q, i)*phi_r(q, j)*detJxW;
-				}
-			}
-		}
-
-		for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-			for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					element(i),
-					element(j),
-					A(i, j)
-				));
-			}
-		}	
-		A.setZero();
-	}
+        // Store the computed coefficients into the triplet list.
+        for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+            for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    element(i),
+                    element(j),
+                    A(i, j)
+                ));
+            }
+        }
+        A.setZero();
+    }
+    nof_pushed_elements = lhs_coeffs.size();
 }
 
 void FreeSurfaceProblem::assemble_rhs_explicit(
-	FEMFunction1D &h_fem_func,
-	FEMFunction1D &ux_fem_func,
-	FEMFunction1D &uz_fem_func,
-	FloatType dt
-) {
-	rhs_vec.setZero();
+    FEMFunction1D &h0_fem_func,
+    FEMFunction1D &ux_fem_func,
+    FEMFunction1D &uz_fem_func,
+    FEMFunction1D &ac_fem_func,
+    FloatType dt,
+    int gauss_precision
+)
+{
+    // Local variables for storing matrix and vector data during assembly.
+    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+        h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi element_h, element_u;
 
-	Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
-		h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi element_h, element_u;
+    // Perform Gauss-Legendre quadrature for the given precision.
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_rhs, qpoints_r, qweights
-	);
+    // Generate Lagrange basis functions for the finite element degree.
+    FEM1D::lagrange_basis(
+        h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
+    );
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
+    );
 
-	FEM1D::lagrange_basis(
-		h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
-	);
+    // Initialize matrices and vectors for mapping and calculation.
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), h_mesh.dofs_per_cell()
+    );
+    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), u_mesh.dofs_per_cell()
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
-	);
+    // Loop over cells to compute the contribution to the RHS vector.
+    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+        element_h = h_mesh.cmat(ci, Eigen::all);
+        element_u = u_mesh.cmat(ci, Eigen::all);
+        node_coords_h = h_mesh.pmat(element_h, Eigen::all);
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords_u, qpoints_r,
+            u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
+        );
+        FEM1D::map_to_reference_cell(
+            h_mesh.degree(), node_coords_h, qpoints_r,
+            h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
+        );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), h_mesh.dofs_per_cell()
-	);
-	u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), u_mesh.dofs_per_cell()
-	);
+        // Evaluate the functions at the quadrature points.
+        Eigen::VectorX<FloatType> h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> dh_vec = h_dphi_x*h0_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
-	for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
-		element_h = h_mesh.cmat(ci, Eigen::all);
-		element_u = u_mesh.cmat(ci, Eigen::all);
-		node_coords_h = h_mesh.pmat(element_h, Eigen::all);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords_u, qpoints_r,
-			u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
-		);
-		FEM1D::map_to_reference_cell(
-			h_mesh.degree(), node_coords_h, qpoints_r,
-			h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
-		);
-
-		Eigen::VectorX<FloatType> h_vec = h_phi_r*h_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> dh_vec = h_dphi_x*h_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType detJxW = qweights(q)*detJ_r(q);
-			for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-				rhs_vec(element_h(i)) += h_phi_r(q, i)*(
-					h_vec(q) + dt*(uz_vec(q) - ux_vec(q)*dh_vec(q) + ac_vec(q))
-				)*detJxW;
-			}
-		}
-	}
+        // Integrate over quadrature points to compute the RHS contributions.
+        for (int q = 0; q < qpoints_r.rows(); q++) {
+            FloatType detJxW = qweights(q)*detJ_r(q);
+            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+                rhs_vec(element_h(i)) += h_phi_r(q, i)*(
+                    h0_vec(q) + dt*(uz_vec(q) - ux_vec(q)*dh_vec(q) + ac_vec(q))
+                )*detJxW;
+            }
+        }
+    }
 }
 
-void FreeSurfaceProblem::assemble_lhs_semi_implicit(
-	FEMFunction1D &ux_fem_func, FloatType dt
+void FreeSurfaceProblem::assemble_lhs_simplicit(
+    FEMFunction1D &ux_fem_func, FloatType dt, int gauss_precision
 ) {
-	lhs_coeffs.clear();
-	lhs_coeffs.reserve((2*h_mesh.degree()+1)*h_mesh.nof_dofs());
+    // Local variables for storing matrix and vector data during assembly.
+    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+        h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi element_h, element_u;
 
-	Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
-		h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi element_h, element_u;
+    // Perform Gauss-Legendre quadrature for the given precision.
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_lhs, qpoints_r, qweights
-	);
+    // Generate Lagrange basis functions for the finite element degree.
+    FEM1D::lagrange_basis(
+        h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
+    );
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
+    );
 
-	FEM1D::lagrange_basis(
-		h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
-	);
+    // Initialize matrices and vectors for mapping and calculation.
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), h_mesh.dofs_per_cell()
+    );
+    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), u_mesh.dofs_per_cell()
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
-	);
+    // Initialize the matrix for each element.
+    Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
+        h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), h_mesh.dofs_per_cell()
-	);
-	u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), u_mesh.dofs_per_cell()
-	);
+    // Loop over cells to compute the implicit contribution to the LHS matrix.
+    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+        element_h = h_mesh.cmat(ci, Eigen::all);
+        element_u = u_mesh.cmat(ci, Eigen::all);
+        node_coords_h = h_mesh.pmat(element_h, Eigen::all);
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords_u, qpoints_r,
+            u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
+        );
+        FEM1D::map_to_reference_cell(
+            h_mesh.degree(), node_coords_h, qpoints_r,
+            h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
+        );
 
-	Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
-		h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
-	);
+        // Evaluate the velocity function at the quadrature points.
+        Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
 
-	for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
-		element_h = h_mesh.cmat(ci, Eigen::all);
-		element_u = u_mesh.cmat(ci, Eigen::all);
-		node_coords_h = h_mesh.pmat(element_h, Eigen::all);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords_u, qpoints_r,
-			u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
-		);
-		FEM1D::map_to_reference_cell(
-			h_mesh.degree(), node_coords_h, qpoints_r,
-			h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
-		);
-		Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
+        // Integrate over quadrature points to compute the LHS matrix.
+        for (int q = 0; q < qpoints_r.rows(); q++) {
+            FloatType detJxW = qweights(q)*detJ_r(q);
+            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+                for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+                    A(i, j) += (
+                        h_phi_r(q, i)*h_phi_r(q, j) +
+                        dt*ux_vec(q)*h_phi_r(q, i)*h_dphi_x(q, j)
+                    )*detJxW;
+                }
+            }
+        }
 
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType detJxW = qweights(q)*detJ_r(q);
-			for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-				for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
-					A(i, j) += (
-						h_phi_r(q, i)*h_phi_r(q, j) +
-						dt*ux_vec(q)*h_phi_r(q, i)*h_dphi_x(q, j)
-					)*detJxW;
-				}
-			}
-		}
-
-		for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-			for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
-				lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
-					element_h(i),
-					element_h(j),
-					A(i, j)
-				));
-			}
-		}
-		A.setZero();
-	}
+        // Store the computed coefficients into the triplet list.
+        for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+            for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                    element_h(i),
+                    element_h(j),
+                    A(i, j)
+                ));
+            }
+        }
+        A.setZero();
+    }
+    nof_pushed_elements = lhs_coeffs.size();
 }
 
-void FreeSurfaceProblem::assemble_rhs_semi_implicit(
-	FEMFunction1D &h_fem_func,
-	FEMFunction1D &uz_fem_func,
-	FloatType dt
+void FreeSurfaceProblem::assemble_rhs_simplicit(
+    FEMFunction1D &h0_fem_func,
+    FEMFunction1D &uz_fem_func,
+    FEMFunction1D &ac_fem_func,
+    FloatType dt,
+    int gauss_precision
 ) {
-	rhs_vec.setZero();
-	Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
-		h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-	Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
-	Eigen::VectorXi element_h, element_u;
+    // Local variables for storing matrix and vector data during assembly.
+    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+        h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
+    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXi element_h, element_u;
 
-	FEM1D::gauss_legendre_quadrature(
-		gp_rhs, qpoints_r, qweights
-	);
+    // Perform Gauss-Legendre quadrature for the given precision.
+    FEM1D::gauss_legendre_quadrature(
+        gauss_precision, qpoints_r, qweights
+    );
 
-	FEM1D::lagrange_basis(
-		h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
-	);
+    // Generate Lagrange basis functions for the finite element degree.
+    FEM1D::lagrange_basis(
+        h_mesh.degree(), qpoints_r, h_phi_r, h_dphi_r
+    );
+    FEM1D::lagrange_basis(
+        u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
+    );
 
-	FEM1D::lagrange_basis(
-		u_mesh.degree(), qpoints_r, u_phi_r, u_dphi_r
-	);
+    // Initialize matrices and vectors for mapping and calculation.
+    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), h_mesh.dofs_per_cell()
+    );
+    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+        qpoints_r.rows(), u_mesh.dofs_per_cell()
+    );
 
-	qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-	detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-	h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), h_mesh.dofs_per_cell()
-	);
-	u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
-		qpoints_r.rows(), u_mesh.dofs_per_cell()
-	);
+    // Loop over cells to compute the implicit contribution to the RHS vector.
+    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+        element_h = h_mesh.cmat(ci, Eigen::all);
+        element_u = u_mesh.cmat(ci, Eigen::all);
+        node_coords_h = h_mesh.pmat(element_h, Eigen::all);
+        node_coords_u = u_mesh.pmat(element_u, Eigen::all);
+        FEM1D::map_to_reference_cell(
+            u_mesh.degree(), node_coords_u, qpoints_r,
+            u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
+        );
+        FEM1D::map_to_reference_cell(
+            h_mesh.degree(), node_coords_h, qpoints_r,
+            h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
+        );
 
-	for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
-		element_h = h_mesh.cmat(ci, Eigen::all);
-		element_u = u_mesh.cmat(ci, Eigen::all);
-		node_coords_h = h_mesh.pmat(element_h, Eigen::all);
-		node_coords_u = u_mesh.pmat(element_u, Eigen::all);
-		FEM1D::map_to_reference_cell(
-			u_mesh.degree(), node_coords_u, qpoints_r,
-			u_phi_r, u_dphi_r, detJ_r, qpoints_x, u_dphi_x
-		);
-		FEM1D::map_to_reference_cell(
-			h_mesh.degree(), node_coords_h, qpoints_r,
-			h_phi_r, h_dphi_r, detJ_r, qpoints_x, h_dphi_x
-		);
+        // Evaluate the functions at the quadrature points.
+        Eigen::VectorX<FloatType> h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
+        Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
-		Eigen::VectorX<FloatType> h_vec = h_phi_r*h_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
-		Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
-		for (int q = 0; q < qpoints_r.rows(); q++) {
-			FloatType detJxW = qweights(q)*detJ_r(q);
-			for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-				rhs_vec(element_h(i)) += h_phi_r(q, i)*(
-					h_vec(q) + dt*(uz_vec(q) + ac_vec(q))
-				)*detJxW;
-			}
-		}
-	}
+        // Integrate over quadrature points to compute the RHS contributions.
+        for (int q = 0; q < qpoints_r.rows(); q++) {
+            FloatType detJxW = qweights(q)*detJ_r(q);
+            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+                rhs_vec(element_h(i)) += h_phi_r(q, i)*(
+                    h0_vec(q) + dt*(uz_vec(q) + ac_vec(q))
+                )*detJxW;
+            }
+        }
+    }
 }
 
 void FreeSurfaceProblem::commit_lhs()
 {
-	lhs_mat.setFromTriplets(lhs_coeffs.begin(), lhs_coeffs.end());
+    lhs_mat.setFromTriplets(lhs_coeffs.begin(), lhs_coeffs.end());
 }
 
 void FreeSurfaceProblem::solve_linear_system()
 {
-	if (linear_solver == SPARSE_LU) {
-		Eigen::SparseLU<Eigen::SparseMatrix<FloatType>> solver;
-		solver.analyzePattern(lhs_mat);
-		solver.factorize(lhs_mat);
-		zs_vec = solver.solve(rhs_vec);
-	} else if (linear_solver == BICGSTAB) {
-		Eigen::BiCGSTAB<Eigen::SparseMatrix<FloatType>> solver;
-		solver.compute(lhs_mat);
-		zs_vec = solver.solve(rhs_vec);
-	} else {
-		// TODO: throw exception
-	}
+    Eigen::SparseLU<Eigen::SparseMatrix<FloatType>> solver;
+    solver.analyzePattern(lhs_mat);
+    solver.factorize(lhs_mat);
+    zs_vec = solver.solve(rhs_vec);
+}
+
+FEMFunction1D FreeSurfaceProblem::height()
+{
+    FEMFunction1D h_func(h_mesh);
+    h_func.vals.noalias() = zs_vec;
+    return h_func;
+}
+
+void FreeSurfaceProblem::reset_lhs()
+{
+    lhs_coeffs.clear();
+    nof_pushed_elements = 0;
+}
+
+void FreeSurfaceProblem::reset_rhs()
+{
+    rhs_vec.setZero();
+}
+
+void FreeSurfaceProblem::reset_system()
+{
+    reset_lhs();
+    reset_rhs();
 }
