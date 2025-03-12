@@ -6,6 +6,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_SHARED_LIBS ON)
 set(CMAKE_BUILD_TYPE Release)
 set(USE_LONG_DOUBLE OFF)
+set(DOXYGEN_HTML ON)
+set(DOXYGEN_LATEX ON)
+
+
+find_package(Doxygen QUIET)
+if(ENABLE_DOCS AND DOXYGEN_FOUND)
+    message(STATUS "Doxygen found, enabling documentation target.")
+
+    set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR}/docs)
+    set(DOXYGEN_CONFIG_FILE ${CMAKE_BINARY_DIR}/Doxyfile)
+
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${DOXYGEN_CONFIG_FILE} @ONLY)
+
+    add_custom_target(
+        doc
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generate documentation using Doxygen"
+        VERBATIM
+    )
+else()
+    if(ENABLE_DOCS)
+        message(WARNING "Doxygen not found, but ENABLE_DOCS is ON. Documentation will not be built.")
+    else()
+        message(STATUS "Documentation build is disabled.")
+    endif()
+endif()
 
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 find_package(Python3 COMPONENTS Development NumPy REQUIRED)
