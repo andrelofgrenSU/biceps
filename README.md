@@ -94,21 +94,26 @@ The pStokes equations are solved using the finite element method (FEM), which di
 This results in the following problem formulation:
 
 Find $\mathbf{u} \in U$ and $p \in q$, such that
+
 $$
 \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 $$
+
 for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear for $Q$.
 
 ### Nonlinear iterations
 To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, where $\mathbf{u}_0$ is some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
 
 Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
+
 $$
 \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 $$
+
 for all $\mathbf{v} \in V$ and all $q \in Q$.
 
 This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
+
 $$
 || \mathbf{u}^{m+1} - \mathbf{u}^{m}||_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
 $$
@@ -119,15 +124,18 @@ The interface between the ice and atmosphere is modeled as freely moving boundar
 $$
 \frac{\partial h}{\partial t} + u_x^s(h(x, t)) \frac{\partial h}{\partial x} = u_z(h(x, t))^s + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
 $$
+
 where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface velocities, a_s is the surface mass balance, and \Gamma_s^{\perp} is the projection of surface onto the line $z = 0$.
 
 ### Weak formulation
 Similarly, in this case the weak formulation is derived by multiplying by a test function $w$ and integrating over $\Gamma_s^{\perp}$, resulting in the following problem:
 
 Find $h \in Z$ such that
+
 $$
 \left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
 $$
+
 for all $w \in Z$, where $Z$ is an appropriate Sobolev space.
 
 ### Time discretization
@@ -135,16 +143,20 @@ This equation is then numerically integrated in time using either explicit- or s
 
 ##### Explicit
 Find $h^{k+1} \in Z$ such that
+
 $$
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x})_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
 $$
+
 for all $w \in Z$.
 
 ##### Semi implicit
 Find $h^{k+1} \in Z$ such that
+
 $$
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z\right )_{\Gamma_s^{\perp}} + \Delta t\left (w, a_s \right)_{\Gamma_s^{\perp}}
 $$
+
 for all $w \in Z$.
 
 ### Free-surface stabilization algorithm (FSSA)
