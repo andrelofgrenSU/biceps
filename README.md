@@ -1,3 +1,4 @@
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 # About
 Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. It is mainly intended for theoretical investigation of numerical stability. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
