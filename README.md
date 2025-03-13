@@ -95,13 +95,13 @@ Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega}
+    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega}
 \end{equation}
 $$
 <!---->
 <!--$$-->
 <!--\begin{equation}-->
-<!--    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},-->
+<!--     - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},-->
 <!--\end{equation}-->
 <!--$$-->
 <!---->
