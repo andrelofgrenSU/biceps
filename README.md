@@ -61,19 +61,11 @@ $$
 
 Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f}$ is the volumetric external body force acting on each fluid element (gravity in case of ice). Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
 
-$$
-\begin{equation}
-    \eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.
-\end{equation}
-$$
+$$\eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.$$
 
 Here $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\dot{\varepsilon}_e$ is the effective strain rate
 
-$$
-\begin{equation}
-    \dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)
-\end{equation}
-$$
+$$\dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)$$
 
 In addition, a small regularization term $\varepsilon_0$ is included to prevent infinite viscosity at zero effective strain rate.
 
@@ -94,14 +86,8 @@ The pStokes equations are solved using the finite element method (FEM), which di
 Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 
-$$\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)$$
-<!---->
-<!--$$-->
-<!--\begin{equation}-->
-<!--     - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},-->
-<!--\end{equation}-->
-<!--$$-->
-<!---->
+$$\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p) -(q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},$$
+
 for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear basis for $Q$.
 
 ### Nonlinear iterations
