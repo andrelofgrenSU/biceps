@@ -106,21 +106,23 @@ To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(
 
 Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 
-
 $$
 \begin{equation}
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+\alpha = 3
 \end{equation}
 $$
-
-
-for all $\mathbf{v} \in V$ and all $q \in Q$.
-
-This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
+<!---->
+<!--$$-->
+<!--\begin{equation}-->
+<!--    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}-->
+<!--\end{equation}-->
+<!--$$-->
+<!---->
+for all $\mathbf{v} \in V$ and all $q \in Q$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
 
 $$
 \begin{equation}
-|| \mathbf{u}^{m+1} - \mathbf{u}^{m}||_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
+    || \mathbf{u}^{m+1} - \mathbf{u}^{m}||_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
 \end{equation}
 $$
 
