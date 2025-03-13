@@ -68,6 +68,7 @@ $$
 $$
 
 Here $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\dot{\varepsilon}_e$ is the effective strain rate
+
 $$
 \begin{equation}
     \dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)
