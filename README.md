@@ -95,10 +95,17 @@ Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},
+\alpha = 3
 \end{equation}
 $$
 
+<!---->
+<!--$$-->
+<!--\begin{equation}-->
+<!--    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},-->
+<!--\end{equation}-->
+<!--$$-->
+<!---->
 for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear basis for $Q$.
 
 ### Nonlinear iterations
@@ -108,16 +115,10 @@ Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-\alpha = 3
+    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 \end{equation}
 $$
-<!---->
-<!--$$-->
-<!--\begin{equation}-->
-<!--    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}-->
-<!--\end{equation}-->
-<!--$$-->
-<!---->
+
 for all $\mathbf{v} \in V$ and all $q \in Q$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
 
 $$
