@@ -15,24 +15,29 @@ The two main modules are the pStokesProblem and the FreeSurfaceProblem
 ## BUILD INSTRUCTIONS
 In the instructions that follow, commands requiring elevated privileges are prepended with a '#' and commands that can be run as regular user with a '$'.
 ### Linux (Ubuntu/Debian)
-This project has rather few dependencies, to build it you only need a working C++ compiler and tool-chain (e.g., gcc or clang), CMake and Eigen3:
+#### C++
+This project has only a few dependencies, to build it you need a working C++ compiler and tool-chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
-```# apt install gcc build-essentials cmake libeigen3-dev```
+```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
 
-The python interface in addition requires [eigenpy](https://github.com/stack-of-tasks/eigenpy) and boost-python. Eigenpy in turn depends on numpy and scipy:
+#### Python
+Building the python interface in addition requires [eigenpy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). Eigenpy in turn depends on numpy and scipy:
 
-```# apt install python3-numpy python3-scipy```
+```# apt install python3-numpy python3-scipy libboost-python-dev```
 
-Once eigenpy dependencies are installed, grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
+After installing dependencies for eigenpy, grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
 ```$ wget https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz && tar -xvzf v3.10.3.tar.gz && cd v3.10.3 && mkdir .build && cmake .. -DCMAKE_BUILD_TYPE=release```
 
-Then install it:
+Then to install run:
 
 ```# make install```
 
+#### Documentation
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/)
 ```# apt install doxygen graphviz```
+
+#### Examples
 
 
 ## DEMOS
