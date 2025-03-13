@@ -93,11 +93,8 @@ The pStokes equations are solved using the finite element method (FEM), which di
 
 Find $\mathbf{u} \in U$ and $p \in q$, such that
 
-$
-\begin{equation}
-    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)
-\end{equation}
-$
+
+$$\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)$$
 <!---->
 <!--$$-->
 <!--\begin{equation}-->
