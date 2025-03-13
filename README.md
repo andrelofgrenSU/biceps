@@ -51,9 +51,11 @@ The flow of ice is that of a highly viscous gravity-driven free-surface problem.
 ## The pStokes equations
 
 ### Strong formulation
-The velocity- and pressure distribution, denoted $mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
+The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
 
-```math \nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} = \mathbf{0} \quad \mathbf{x} \in \Omega```
+```math
+\nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} = \mathbf{0} \quad \mathbf{x} \in \Omega
+```
 
 ```math \nabla \cdot \mathbf{u} = 0```
 
