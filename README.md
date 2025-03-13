@@ -1,26 +1,17 @@
-# BICEPS
-## Overview
+# ABOUT
 Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. It is mainly intended for theoretical investigation of numerical stability. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
-## Governing equations
-Modeling ice essentially boils down to solving a highly viscous gravity-driven free-surface problem. The dynamics of the ice are described by Stokes equation (a simplified version of the Navier-Stokes equation, valid only for viscous flows)
+# BUILD INSTRUCTIONS
+In the following instructions, note that commands requiring elevated privileges are prepended with a '#', and commands that can be run as regular user with a '$'.
+## Linux (Ubuntu/Debian)
 
-The interface between the ice and atmosphere is modeled as freely moving boundary, and is described by the so-called free-surface equation
-
-The two main modules are the pStokesProblem and the FreeSurfaceProblem
-
-### Boundary conditions
-
-
-## BUILD INSTRUCTIONS
-In the instructions that follow, commands requiring elevated privileges are prepended with a '#' and commands that can be run as regular user with a '$'.
-### Linux (Ubuntu/Debian)
-#### C++
+### C++
 This project has rather few dependencies, a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
 ```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
 
-#### Python
+### Python
+
 Building the python interface requires [EigenPy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). [EigenPy](https://github.com/stack-of-tasks/eigenpy) in turn depends on [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/):
 
 ```# apt install python3-numpy python3-scipy libboost-python-dev```
@@ -35,34 +26,93 @@ Then to install run:
 
 CMake flag: -DWITH_PYTHON:boolean
 
-#### Documentation
+### Documentation
+
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/)
 
 ```# apt install doxygen graphviz```
 
 CMake flag: -DBUILD_DOCS:boolean
 
-#### Build example
-To build clone the repository:
-```$ cmake .. -DCMAKE_BUILD_TYPE=release```
-Extract it:
-```$ tar -xvzf ```
-Build:
-```$ cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DBUILD_DOCS=OFF -DUSE_LONG_DOUBLE=OFF```
+### Example build
 
-Install:
-```# make install```
+The steps for installing this repository is:
+1. Clone repository: ```git clone https://github.com/andrelofgrenSU/biceps.git```
+
+2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DBUILD_DOCS=OFF -DUSE_LONG_DOUBLE=OFF -DTESTS=OFF```
+
+3. Run tests (optional): ```# make install```
+
+4. Install: ```# make install```
 
 
-## DEMOS
-Below are commented examples using C++ and Python interface. The demos can be found under demos/
-### C++
+# Governing equations
+The flow of ice is that of a highly viscous gravity-driven free-surface problem.
+
+## The pStokes equations
+
+### Strong formulation
+The velocity- and pressure distribution, denoted mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
+
+```math \nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} = \mathbf{0} \quad \mathbf{x} \in \Omega```
+
+```math \nabla \cdot \mathbf{u} = 0```
+
+Here $\varepsilon(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla \mathbf{u}^T \right) $ is the strain-rate tensor, $\mathbf{f} = -\rho g \hat{\mathbf{e}}_z$ the force due to gravity. The viscosity function $\eta$ is assumed to follow a power-law rheology known as Glen's flow law
+
+```math \eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\frac{1}{2} (tr(\dot{\varepsilon}^2) tr) + \varepsilon \right)```
+
+where $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\varepsilon_{eff}$ is the effective strain rate
+
+```math \varepsilon_{eff}^2 = \frac{1}{2} \left (\text{tr} \left (\varepsilon(\mathbf{u})^2 \right ) - \text{tr}^2 \left (\varepsilon(\mathbf{u}) \right ) \right)```
+
+In addition, a small regularization term $\varepsilon_0$ is included to prevent infinite viscosity at zero effective strain rate.
+
+This type of power-law viscosity coupled Stokes equation is referred to as the pStokes equation.
+
+
+### Boundary conditions
+For wellposedness of the pStokes equation, boundary conditions needs to be specified on all parts of the boundary. Specifically, for grounded ice sheets the following are typically imposed:
+
+1. Stress free condition on the ice-atmosphere interface $\Gamma_s$: $\varsigma \hat{\mathbf{n}} = \mathbf{0}$
+2. No-slip on the bedrock $\Gamma_b$: $\mathbf{u} \cdot \hat{\mathbf{n}} = 0$
+3. Impenetrability on the lateral boundaries $\Gamma_E$ and $\Gamma_W$: $\mathbf{u} \cdot \hat{\mathbf{n}} = 0
+
+These boundary conditions can, however, be used interchangeably on all boundary parts.
+
+### Weak formulation
+The weak formulation is obtained by multiplying the momentum equation and the incompressibilyiy by a test functions $\mathbf{v}$ and $q$, respectively, and then integrating over the domain $\Omega$.
+
+The problem then reads:
+
+Find $\mathbf{u} \in U$ and $p \in q$, so that
+```math \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{v}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}```
+
+for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces.
+
+
+## The free-surface equation
+The interface between the ice and atmosphere is modeled as freely moving boundary, moving due to ice particles being transported by the ice flow across the boundary, and due snow accumulating or ablating on top of it. Tracking the surface free surface height $h(x, z, t)$ its evolution is captured by the so-called free-surface equation
+
+$\frac{\partial h}{\partial t} = -ux^s(h) \frac{\partial h}{\partial x} + uz(h)^s + ac(x, z, t) \quad (x, z) \in \Gamma^{\perp}_s$
+where ux^s and uz^s are the ice surface velocities obtained from solving the pStokes equations.
+
+### Free-surface stabilization algorithm (FSSA)
+The pStokes equations coupled to the free-surface equation can be viewed as infinite dimensional dynamical system.
+
+The modules for solving these equations are the pStokesProblem and the FreeSurfaceProblem. It is then up to the user to couple these equations. Full working examples on how this is done is provided in the demos.
+
+# DEMOS
+Below are commented examples using the C++ and Python interfaces. The demos can be found under demos/
+
+## C++
 ```C++
 
 ```
 
-### Python
-Running this demo also requires [Matplotlib](https://matplotlib.org):
+## Python
+
+Running this demo also requires [Matplotlib](https://matplotlib.org). To install on debian-based system, run:
 ```# apt install python3-matplotlib```
 
 ```python
@@ -70,6 +120,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import biceps as bp
 
+GRAVITY = 9.8  # Gravitational acceleration (m/s^2)
+ICE_DENSITY = 910  $ Ice density (kg/m^3)
+FORCE_Z = -1e-3*ICE_DENSITY*GRAVITY  $ Force in z direction converted to units in MPa, yr and km
 
 # Define the expressions for the bottom and surface elevations
 def zb_expr(x): return 0.0  # Flat bottom surface
@@ -78,18 +131,18 @@ def zs_expr(x): return H + z0*np.cos(np.pi*x/L)  # Undulating surface elevation
 
 # Define external force functions
 def force_x(x, z): return 0.0  # No horizontal force
-def force_z(x, z): return -1e-3*bp.GRAVITY*bp.ICE_DENSITY  # Gravity-driven force in the z-direction
+def force_z(x, z): return FORCE_Z  # Gravity-driven force in the z-direction
 
 
 # Define domain and grid parameters
-x0 = 0.0
-x1 = 100.0
+x0 = 0.0  # Left end of domain (km)
+x1 = 100.0  # Right end of domain (km)
 L = x1 - x0  # Length of the domain
-H = 1  # Mean height of the domain
-z0 = 0.5  # Amplitude of surface undulation
+H = 1  # Mean height of the domain (km)
+z0 = 0.5  # Amplitude of surface undulation (km)
 
-A = 100.0  # Coefficient for viscosity term
-n_i = 3.0  # Flow law exponent
+A = 100.0  # Rate factor
+n_i = 3.0  # Glen exponent
 fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
 fssa_param = 0  # No additional parameter for FSSA
 eps_reg_2 = 1e-10  # Regularization parameter
