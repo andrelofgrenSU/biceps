@@ -54,10 +54,12 @@ The flow of ice is that of a highly viscous gravity-driven free-surface problem.
 The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
 
 $$
-\nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} = \mathbf{0} \quad \mathbf{x} \in \Omega
+\begin{aligned}
+\nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} &= \mathbf{0} \quad \mathbf{x} \in \Omega \\
+\nabla \cdot \mathbf{u} &= 0
+\end{aligned}
 $$
 
-```math \nabla \cdot \mathbf{u} = 0```
 
 Here $\varepsilon(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla \mathbf{u}^T \right) $ is the strain-rate tensor, $\mathbf{f} = -\rho g \hat{\mathbf{e}}_z$ the force due to gravity. The viscosity function $\eta$ is assumed to follow a power-law rheology known as Glen's flow law
 
