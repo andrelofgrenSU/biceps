@@ -139,7 +139,7 @@ This equation is then numerically integrated in time using either explicit- or s
 ##### Explicit
 Find $h^{k+1} \in Z$ such that
 
-```
+```math
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x})_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
 ```
 
@@ -148,7 +148,7 @@ for all $w \in Z$.
 ##### Semi implicit
 Find $h^{k+1} \in Z$ such that
 
-```
+```math
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z\right )_{\Gamma_s^{\perp}} + \Delta t\left (w, a_s \right)_{\Gamma_s^{\perp}}
 ```
 
