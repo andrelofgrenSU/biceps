@@ -123,7 +123,7 @@ Similarly, in this case the weak formulation is derived by multiplying by a test
 
 Find $h \in Z$ such that
 
-```
+```math
 \left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
 ```
 
