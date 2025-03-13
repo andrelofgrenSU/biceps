@@ -104,7 +104,7 @@ Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 for all $\mathbf{v} \in V$ and all $q \in Q$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
 
 ```math
-    \lVert \mathbf{u}^{m+1} - \mathbf{u}^{m} \rVert_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
+    \lVert \mathbf{u}^{m+1} - \mathbf{u}^{m} \rVert_{L^2(\Omega)} < \epsilon_s \rVert \mathbf{u}^{m+1}\lVert_{L^2(\Omega)}
 ```
 
 ## The free-surface equation
