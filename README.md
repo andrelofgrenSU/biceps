@@ -95,7 +95,7 @@ Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega}
+    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega}
 \end{equation}
 $$
 <!---->
