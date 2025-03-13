@@ -87,7 +87,7 @@ The pStokes equations are solved using the finite element method (FEM), which di
 Find $\mathbf{u} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
 
 ```math
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\mathbf{v}, \sigma(\mathbf{u}) \hat{\mathbf{n}} )_{\partial \Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 ```
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. Here $\mathcal{U}, \mathcal{V}$ and $\mathcal{Q}$ are appropriate Sobolev spaces, in particular the discretized trial spaces $\mathcal{U}_h \subset \mathcal{U}$ and $\mathcal{Q}_h \in \mathcal{Q}$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $\mathcal{U}$ and linear basis for $\mathcal{Q}$.
@@ -112,7 +112,7 @@ The interface between the ice and atmosphere is modeled as freely moving boundar
 
 ```math
 \begin{equation}
-\frac{\partial h}{\partial t} + u^s_x(h(x, t)) \frac{\partial h}{\partial x} = u^s_z(h(x, t)) + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
+    \frac{\partial h}{\partial t} + u^s_x(h(x, t)) \frac{\partial h}{\partial x} = u^s_z(h(x, t)) + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
 \end{equation}
 ```
 
@@ -124,39 +124,75 @@ Similarly, in this case the weak formulation is derived by multiplying by a test
 Find $h \in \mathcal{Z}$ such that
 
 ```math
-\left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
+    \left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
 ```
 
 for all $w \in \mathcal{Z}$, where $\mathcal{Z}$ is an appropriate Sobolev space.
 
 ### Time discretization
-This equation is then numerically integrated in time using either explicit- or semi-implicit time stepping. The weak formulation in each case is as follows:
+This equation is numerically integrated in time by replacing the time derivative with a forward difference scheme, and either evaluating $\frac{\partial h}{\partial x}$ at the current time step $k$ or the next time step $k+1$. The weak formulation for both cases can be written as:
 
-##### Explicit
+Find $h^{k+1} \in \mathcal{Z}$ such that
+```math
+    \left (w, \frac{h^{k+1} - h^k}{\Delta t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h^{k + \gamma}}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
+```
+for all $w \in \mathcal{Z}$. Thus setting $gamma = 0$ and $\gamma = 1$ results in an explicit- and semi-implicit scheme, respectively.
+
+Rearragning, the weak formulation for each case is:
+
+**Explicit**
 Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math
-\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x} \right)_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s )_{\Gamma_s^{\perp}}
+    \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x} \right)_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s )_{\Gamma_s^{\perp}}
 ```
 
 for all $w \in \mathcal{Z}$.
 
-##### Semi implicit
+**Semi implicit**
 Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math
-\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
+    \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
 ```
 
 for all $w \in \mathcal{Z}$.
 
-### Free-surface stabilization algorithm (FSSA)
-The pStokes equations coupled to the free-surface equation can be viewed as infinite dimensional dynamical system.
+### Free surface stabilization
+The above time discretization are both examples of explicit (w.r.t. surface velocities) time stepping schemes, and are therefore subject to stability constraints on the time-step size. However, solving for the unknown velocities at the next time step in a fully implicit manner requires an iterative algorithm to resolve the nonlinearity. A more computationally appealing approach is to combine the stability of an implicit scheme with the low computational cost of an explicit scheme. A method to this end is the so-called free-surface stabilization algorithm (FSSA), which numerical studies have shown to increase stable time-step size up to an order of magnitude.
 
-The modules for solving these equations are the pStokesProblem and the FreeSurfaceProblem. It is then up to the user to couple these equations. Full working examples on how this is done is provided in the demos.
+For the purpose of deriving this method, note that a fully implicit scheme corresponds to replacing the domain of integration in the weak formulation of the pStokes equation with$\Omega^{k+1}$. 
+
+For the fully implicit scheme, the weak form reads:
+
+Find $\mathbf{u}^{k+1} \in \mathcal{U}$ and $p^{k+1} \in \mathcal{Q}$, such that
+
+```math
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^{k+1}} - (\nabla \cdot \mathbf{v}, p)_{\Omega^{k+1}} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} = (\mathbf{v}, \mathbf{f})_{\Omega^{k+1}}
+```
+
+for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
+
+Next all integrals on the left-hand side are approximated as $(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}$. Now only the right hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
+
+```math
+(\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{u}_b )_{\Gamma^s}
+
+```
+The boundary velocity $\mathbf{u}_b = \mathbf{u} + a_s \mathbf{e}_z$ is simply the sum of the flow velocity and the vertical accumulation rate. Inserting this into the above and moving the term involving $\mathbf{u}$ to the left-hand side give the free-surface stabilized weak formulation of the pStokes equations:
+
+Find $\tilde{\mathbf{u}}^{k+1} \in \mathcal{U}$ and $\tilde{p}^{k+1} \in \mathcal{Q}$, such that
+
+```math
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} = (\mathbf{v}, \mathbf{f})_{\Omega^{k+1}}
+```
+
+for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
+
+
 
 # DEMOS
-Below are commented examples using the C++ and Python interfaces. The demos can be found under demos/
+The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem. It is then up to the user to couple these equations. Full working examples on how this is done is provided in the demos below. Below are fully working examples using the C++ and Python interfaces. The demos can be also found under /demos.
 
 ## C++
 ```C++
@@ -165,7 +201,8 @@ Below are commented examples using the C++ and Python interfaces. The demos can 
 
 ## Python
 
-Running this demo also requires [Matplotlib](https://matplotlib.org). To install on debian-based system, run:
+Running this demo also requires [Matplotlib](https://matplotlib.org), which on debian-based system can be installed with:
+
 ```# apt install python3-matplotlib```
 
 ```python
