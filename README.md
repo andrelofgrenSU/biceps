@@ -95,14 +95,14 @@ Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 \end{equation}
 $$
 
-for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear for $Q$.
+for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear basis for $Q$.
 
 ### Nonlinear iterations
-To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, where $\mathbf{u}_0$ is some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
+To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, with $\mathbf{u}_0$ being some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
 
 Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 
