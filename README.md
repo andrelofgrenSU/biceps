@@ -95,7 +95,7 @@ Find $\mathbf{u} \in U$ and $p \in q$, such that
 
 $$
 \begin{equation}
-    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+    \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega},
 \end{equation}
 $$
 
@@ -106,11 +106,13 @@ To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(
 
 Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 
+
 $$
 \begin{equation}
 \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 \end{equation}
 $$
+
 
 for all $\mathbf{v} \in V$ and all $q \in Q$.
 
@@ -125,11 +127,13 @@ $$
 ## The free-surface equation
 The interface between the ice and atmosphere is modeled as freely moving boundary, this interface moves either due to ice particles being transported by the ice flow across the boundary, or due snow accumulating or ablating on top of it. Tracking the free-surface height $h(x, t)$, its evolution until time $T$ is described by the so-called free-surface equation
 
+
 $$
 \begin{equation}
 \frac{\partial h}{\partial t} + u_x^s(h(x, t)) \frac{\partial h}{\partial x} = u_z(h(x, t))^s + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
 \end{equation}
 $$
+
 
 where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface velocities, a_s is the surface mass balance, and \Gamma_s^{\perp} is the projection of surface onto the line $z = 0$.
 
