@@ -112,7 +112,7 @@ The interface between the ice and atmosphere is modeled as freely moving boundar
 
 ```math
 \begin{equation}
-\frac{\partial h}{\partial t} + u_x^s(h(x, t)) \frac{\partial h}{\partial x} = u_z(h(x, t))^s + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
+\frac{\partial h}{\partial t} + u^s_x(h(x, t)) \frac{\partial h}{\partial x} = u^s_z(h(x, t)) + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
 \end{equation}
 ```
 
@@ -136,7 +136,7 @@ This equation is then numerically integrated in time using either explicit- or s
 Find $h^{k+1} \in Z$ such that
 
 ```math
-\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x})_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
+\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x} \right)_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s )_{\Gamma_s^{\perp}}
 ```
 
 for all $w \in Z$.
@@ -145,7 +145,7 @@ for all $w \in Z$.
 Find $h^{k+1} \in Z$ such that
 
 ```math
-\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z\right )_{\Gamma_s^{\perp}} + \Delta t\left (w, a_s \right)_{\Gamma_s^{\perp}}
+\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
 ```
 
 for all $w \in Z$.
