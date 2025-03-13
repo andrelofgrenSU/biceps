@@ -46,7 +46,6 @@ The steps for installing this repository is:
 4. Install: ```# make install```
 
 # Governing equations
-The flow of ice is that of a highly viscous gravity-driven free-surface problem.
 
 ## The pStokes equations
 
@@ -55,50 +54,91 @@ The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respective
 
 $$
 \begin{aligned}
-\nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} &= \mathbf{0} \quad \mathbf{x} \in \Omega \\
-\nabla \cdot \mathbf{u} &= 0
+    \nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} &= \mathbf{0}, \quad \mathbf{x} \in \Omega, \\
+    \nabla \cdot \mathbf{u} &= 0, \quad \mathbf{x} \in \Omega.
 \end{aligned}
 $$
 
+Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f} = -\rho g \hat{\mathbf{e}}_z$ the volumetric force due to gravity acting on each fluid element. Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
 
-Here $\varepsilon(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla \mathbf{u}^T \right) $ is the strain-rate tensor, $\mathbf{f} = -\rho g \hat{\mathbf{e}}_z$ the force due to gravity. The viscosity function $\eta$ is assumed to follow a power-law rheology known as Glen's flow law
-
-```math \eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\frac{1}{2} (tr(\dot{\varepsilon}^2) tr) + \varepsilon \right)```
-
-where $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\varepsilon_{eff}$ is the effective strain rate
-
-```math \varepsilon_{eff}^2 = \frac{1}{2} \left (\text{tr} \left (\varepsilon(\mathbf{u})^2 \right ) - \text{tr}^2 \left (\varepsilon(\mathbf{u}) \right ) \right)```
-
+$$
+\eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.
+$$
+Here $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\dot{\varepsilon}_e$ is the effective strain rate
+$$
+\dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)
+$$
 In addition, a small regularization term $\varepsilon_0$ is included to prevent infinite viscosity at zero effective strain rate.
 
 This type of power-law viscosity coupled Stokes equation is referred to as the pStokes equation.
 
-
 ### Boundary conditions
 For wellposedness of the pStokes equation, boundary conditions needs to be specified on all parts of the boundary. Specifically, for grounded ice sheets the following are typically imposed:
 
-1. Stress free condition on the ice-atmosphere interface $\Gamma_s$: $\varsigma \hat{\mathbf{n}} = \mathbf{0}$
+1. Stress free condition on the ice-atmosphere interface $\Gamma_s$: $\sigma \hat{\mathbf{n}} = \mathbf{0}$
 2. No-slip on the bedrock $\Gamma_b$: $\mathbf{u} \cdot \hat{\mathbf{n}} = 0$
-3. Impenetrability on the lateral boundaries $\Gamma_E$ and $\Gamma_W$: $\mathbf{u} \cdot \hat{\mathbf{n}} = 0
+3. Impenetrability on the lateral boundaries $\Gamma_E$ and $\Gamma_W$: $\mathbf{u} \cdot \hat{\mathbf{n}} = 0$
 
 These boundary conditions can, however, be used interchangeably on all boundary parts.
 
 ### Weak formulation
-The weak formulation is obtained by multiplying the momentum equation and the incompressibilyiy by a test functions $\mathbf{v}$ and $q$, respectively, and then integrating over the domain $\Omega$.
+The pStokes equations are solved using the finite element method (FEM), which discretizes the weak formulation. To state the weak form, the momentum equation and the incompressibility condition are multiplied by test functions $\mathbf{v}$ and $q$, respectively, and then integrating over the domain $\Omega$.
 
-The problem then reads:
+This results in the following problem formulation:
 
-Find $\mathbf{u} \in U$ and $p \in q$, so that
-```math \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{v}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}```
+Find $\mathbf{u} \in U$ and $p \in q$, such that
+$$
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+$$
+for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear for $Q$.
 
-for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces.
+### Nonlinear iterations
+To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, where $\mathbf{u}_0$ is some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
 
+Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
+$$
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+$$
+for all $\mathbf{v} \in V$ and all $q \in Q$.
+
+This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
+$$
+|| \mathbf{u}^{m+1} - \mathbf{u}^{m}||_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
+$$
 
 ## The free-surface equation
-The interface between the ice and atmosphere is modeled as freely moving boundary, moving due to ice particles being transported by the ice flow across the boundary, and due snow accumulating or ablating on top of it. Tracking the surface free surface height $h(x, z, t)$ its evolution is captured by the so-called free-surface equation
+The interface between the ice and atmosphere is modeled as freely moving boundary, this interface moves either due to ice particles being transported by the ice flow across the boundary, or due snow accumulating or ablating on top of it. Tracking the free-surface height $h(x, z, t)$, its evolution from $t=0$ to $t=T$ is described by the so-called free-surface equation
 
-$\frac{\partial h}{\partial t} = -ux^s(h) \frac{\partial h}{\partial x} + uz(h)^s + ac(x, z, t) \quad (x, z) \in \Gamma^{\perp}_s$
-where ux^s and uz^s are the ice surface velocities obtained from solving the pStokes equations.
+$$
+\frac{\partial h}{\partial t} + u_x^s(h(x, t)) \frac{\partial h}{\partial x} = u_z(h(x, t))^s + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
+$$
+where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface velocities, a_s is the surface mass balance, and \Gamma_s^{\perp} is the projection of surface onto the line $z = 0$.
+
+### Weak formulation
+Similarly, in this case the weak formulation is derived by multiplying by a test function $w$ and integrating over $\Gamma_s^{\perp}$, resulting in the following problem:
+
+Find $h \in Z$ such that
+$$
+\left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
+$$
+for all $w \in Z$, where $Z$ is an appropriate Sobolev space.
+
+### Time discretization
+This equation is then numerically integrated in time using either explicit- or semi-implicit time stepping. The weak formulation in each case is as follows:
+
+##### Explicit
+Find $h^{k+1} \in Z$ such that
+$$
+\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x})_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
+$$
+for all $w \in Z$.
+
+##### Semi implicit
+Find $h^{k+1} \in Z$ such that
+$$
+\left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z\right )_{\Gamma_s^{\perp}} + \Delta t\left (w, a_s \right)_{\Gamma_s^{\perp}}
+$$
+for all $w \in Z$.
 
 ### Free-surface stabilization algorithm (FSSA)
 The pStokes equations coupled to the free-surface equation can be viewed as infinite dimensional dynamical system.
