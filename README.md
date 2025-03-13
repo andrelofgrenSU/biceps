@@ -65,6 +65,7 @@ $$
 \begin{equation}
     \eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.
 \end{equation}
+$$
 
 $$
 \begin{equation}
