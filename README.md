@@ -65,15 +65,19 @@ $$
 \begin{equation}
     \eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.
 \end{equation}
+
 $$
 \begin{equation}
     Here $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\dot{\varepsilon}_e$ is the effective strain rate
 \end{equation}
 $$
+
+$$
 \begin{equation}
     \dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)
 \end{equation}
 $$
+
 In addition, a small regularization term $\varepsilon_0$ is included to prevent infinite viscosity at zero effective strain rate.
 
 This type of power-law viscosity coupled Stokes equation is referred to as the pStokes equation.
