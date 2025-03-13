@@ -16,38 +16,55 @@ The two main modules are the pStokesProblem and the FreeSurfaceProblem
 In the instructions that follow, commands requiring elevated privileges are prepended with a '#' and commands that can be run as regular user with a '$'.
 ### Linux (Ubuntu/Debian)
 #### C++
-This project has only a few dependencies, to build it you need a working C++ compiler and tool-chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
+This project has rather few dependencies, a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
 ```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
 
 #### Python
-Building the python interface in addition requires [eigenpy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). Eigenpy in turn depends on numpy and scipy:
+Building the python interface requires [EigenPy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). [EigenPy](https://github.com/stack-of-tasks/eigenpy) in turn depends on [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/):
 
 ```# apt install python3-numpy python3-scipy libboost-python-dev```
 
-After installing dependencies for eigenpy, grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
+After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
-```$ wget https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz && tar -xvzf v3.10.3.tar.gz && cd v3.10.3 && mkdir .build && cmake .. -DCMAKE_BUILD_TYPE=release```
+```$ tar -xvzf v3.10.3.tar.gz && cd v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release```
 
 Then to install run:
 
 ```# make install```
 
+CMake flag: -DWITH_PYTHON:boolean
+
 #### Documentation
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/)
+
 ```# apt install doxygen graphviz```
 
-#### Examples
+CMake flag: -DBUILD_DOCS:boolean
+
+#### Build example
+To build clone the repository:
+```$ cmake .. -DCMAKE_BUILD_TYPE=release```
+Extract it:
+```$ tar -xvzf ```
+Build:
+```$ cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DBUILD_DOCS=OFF -DUSE_LONG_DOUBLE=OFF```
+
+Install:
+```# make install```
 
 
 ## DEMOS
-Below are commented examples using C++ and Python interface. The demos are available under demos/
+Below are commented examples using C++ and Python interface. The demos can be found under demos/
 ### C++
 ```C++
 
 ```
 
 ### Python
+Running this demo also requires [Matplotlib](https://matplotlib.org):
+```# apt install python3-matplotlib```
+
 ```python
 import numpy as np
 import matplotlib.pyplot as plt
@@ -177,5 +194,5 @@ for k in range(nt):
     plt.plot(xs_vec, zs_vec)
 
 # Show final plot
-plt.show(
+plt.show()
 ```
