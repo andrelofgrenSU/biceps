@@ -1,7 +1,7 @@
-# ABOUT
+# About
 Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. It is mainly intended for theoretical investigation of numerical stability. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page).
 
-# BUILD INSTRUCTIONS
+# Build instruction
 In the following instructions, note that commands requiring elevated privileges are prepended with a '#', and commands that can be run as regular user with a '$'.
 ## Linux (Ubuntu/Debian)
 
@@ -28,7 +28,7 @@ CMake flag: -DWITH_PYTHON:boolean
 
 ### Documentation
 
-Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/)
+Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/):
 
 ```# apt install doxygen graphviz```
 
@@ -45,14 +45,13 @@ The steps for installing this repository is:
 
 4. Install: ```# make install```
 
-
 # Governing equations
 The flow of ice is that of a highly viscous gravity-driven free-surface problem.
 
 ## The pStokes equations
 
 ### Strong formulation
-The velocity- and pressure distribution, denoted mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
+The velocity- and pressure distribution, denoted $mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
 
 ```math \nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} = \mathbf{0} \quad \mathbf{x} \in \Omega```
 
