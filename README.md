@@ -82,26 +82,26 @@ For wellposedness of the pStokes equation, boundary conditions needs to be speci
 These boundary conditions can, however, be used interchangeably on all boundary parts.
 
 ### Weak formulation
-The pStokes equations are solved using the finite element method (FEM), which discretizes the weak formulation. To state the weak form, the momentum equation and the incompressibility condition are multiplied by test functions $\mathbf{v}$ and $q$, respectively, and then integrating over the domain $\Omega$, resulting in the following weak formulation:
+The pStokes equations are solved using the finite element method (FEM), which discretizes the weak formulation. To state the weak form, the momentum equation and the incompressibility condition are multiplied by test functions $\mathbf{v} \in \mathcal{V}$ and $q \in \mathcal{Q}$, respectively, and then integrating over the domain $\Omega$. This results in the following weak formulation:
 
-Find $\mathbf{u} \in U$ and $p \in q$, such that
+Find $\mathbf{u} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
 
 ```math
 \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 ```
 
-for all $\mathbf{v} \in V$ and all $q \in Q$. Here $U, V$ and $Q$ are appropriate Sobolev spaces, in particular the discretized trial spaces $U$ and $Q$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $U$ and linear basis for $Q$.
+for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. Here $\mathcal{U}, \mathcal{V}$ and $\mathcal{Q}$ are appropriate Sobolev spaces, in particular the discretized trial spaces $\mathcal{U}_h \subset \mathcal{U}$ and $\mathcal{Q}_h \in \mathcal{Q}$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $\mathcal{U}$ and linear basis for $\mathcal{Q}$.
 
 ### Nonlinear iterations
 To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, with $\mathbf{u}_0$ being some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
 
-Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
+Find $\mathbf{u}^{m+1} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
 
 ```math
     \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 ```
 
-for all $\mathbf{v} \in V$ and all $q \in Q$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
+for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
 
 ```math
     \lVert \mathbf{u}^{m+1} - \mathbf{u}^{m} \rVert_{L^2(\Omega)} < \epsilon_s \rVert \mathbf{u}^{m+1}\lVert_{L^2(\Omega)}
@@ -121,34 +121,34 @@ where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface
 ### Weak formulation
 Similarly, in this case the weak formulation is derived by multiplying by a test function $w$ and integrating over $\Gamma_s^{\perp}$, resulting in the following problem:
 
-Find $h \in Z$ such that
+Find $h \in \mathcal{Z}$ such that
 
 ```math
 \left (w, \frac{\partial h}{\partial t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
 ```
 
-for all $w \in Z$, where $Z$ is an appropriate Sobolev space.
+for all $w \in \mathcal{Z}$, where $\mathcal{Z}$ is an appropriate Sobolev space.
 
 ### Time discretization
 This equation is then numerically integrated in time using either explicit- or semi-implicit time stepping. The weak formulation in each case is as follows:
 
 ##### Explicit
-Find $h^{k+1} \in Z$ such that
+Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} = \left (w, h^k\right)_{\Gamma_s^{\perp}} - \Delta t \left (w, u^s_x \frac{\partial h^k}{\partial x} \right)_{\Gamma_s^{\perp}} + \Delta t (w, u^s_z + a_s )_{\Gamma_s^{\perp}}
 ```
 
-for all $w \in Z$.
+for all $w \in \mathcal{Z}$.
 
 ##### Semi implicit
-Find $h^{k+1} \in Z$ such that
+Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math
 \left (w,  h^{k+1}\right)_{\Gamma_s^{\perp}} + \Delta t \left (w, u^s_x \frac{\partial h^{k+1}}{\partial x} \right)_{\Gamma_s^{\perp}} = \Delta t \left (w, u^s_z + a_s \right)_{\Gamma_s^{\perp}}
 ```
 
-for all $w \in Z$.
+for all $w \in \mathcal{Z}$.
 
 ### Free-surface stabilization algorithm (FSSA)
 The pStokes equations coupled to the free-surface equation can be viewed as infinite dimensional dynamical system.
