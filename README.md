@@ -52,12 +52,12 @@ The steps for installing this repository is:
 ### Strong formulation
 The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respectively, inside the ice sheet is governed by the Stokes equation (a simplification of the Navier-Stokes equation, valid only for viscous dominated flows), which consists of the momentum balance and an incompressibility condition:
 
-$$
+```math
 \begin{aligned}
     \nabla \cdot (2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u})) - \nabla p + \mathbf{f} &= \mathbf{0}, \quad \mathbf{x} \in \Omega, \\
     \nabla \cdot \mathbf{u} &= 0, \quad \mathbf{x} \in \Omega.
 \end{aligned}
-$$
+```
 
 Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f}$ is the volumetric external body force acting on each fluid element (gravity in case of ice). Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
 
@@ -98,23 +98,19 @@ To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(
 Find $\mathbf{u}^{m+1} \in U$ and $p \in q$, such that
 
 ```math
-\begin{equation}
     \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q^{m+1}, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
-\end{equation}
 ```
 
 for all $\mathbf{v} \in V$ and all $q \in Q$. This is then iterated upon until a user defined step tolerance $\epsilon_s$ is reached:
 
 ```math
-\begin{equation}
     || \mathbf{u}^{m+1} - \mathbf{u}^{m}||_{L^2(\Omega)} < \epsilon_s || \mathbf{u}^{m+1}||_{L^2(\Omega)}
-\end{equation}
 ```
 
 ## The free-surface equation
 The interface between the ice and atmosphere is modeled as freely moving boundary, this interface moves either due to ice particles being transported by the ice flow across the boundary, or due snow accumulating or ablating on top of it. Tracking the free-surface height $h(x, t)$, its evolution until time $T$ is described by the so-called free-surface equation
 
-```
+```math
 \begin{equation}
 \frac{\partial h}{\partial t} + u_x^s(h(x, t)) \frac{\partial h}{\partial x} = u_z(h(x, t))^s + a_s(x, t), \quad (x, t) \in \Gamma^{\perp}_s \times [0, T],
 \end{equation}
