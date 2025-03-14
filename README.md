@@ -22,12 +22,13 @@ Building the python interface requires [EigenPy](https://github.com/stack-of-tas
 
 After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
-```$ tar -xvzf v3.10.3.tar.gz && cd v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release```
+```$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release```
 
 Then to install run:
 
 ```# make install```
 
+To build Biceps with Python enabled, configure CMake:
 ```cmake
 cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_PYTHON=ON
 ```
@@ -37,20 +38,35 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_PYTHON=ON
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/):
 
 ```# apt install doxygen graphviz```
+
+To build Biceps documentation, configure CMake:
 ```cmake
 cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=ON
 ```
+
+### Unit testing
+Unit testing is performed using the unittest module of boost, which can be installed by running:
+
+```# apt install liboost-test-dev```
+
+To build Biceps with Python enabled, configure CMake:
+```cmake
+cmake .. -DCMAKE_BUILD_TYPE=Release -DTESTS=ON
+```
+
 
 ### Example build
 
 The steps for installing this repository is:
 1. Clone repository: ```git clone https://github.com/andrelofgrenSU/biceps.git```
 
-2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DBUILD_DOCS=OFF -DUSE_LONG_DOUBLE=OFF -DTESTS=OFF```
+2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DTESTS=ON  -DBUILD_DOCS=ON -DUSE_LONG_DOUBLE=OFF```
 
-3. Run tests (optional): ```# make test mesh && make test ```
+3. Build documentation (optional): ```# make doc ```
 
-4. Install: ```# make install```
+4. Run tests (optional): ```# make test mesh && make test ```
+
+5. Install: ```# make install```
 
 # Governing equations
 
@@ -204,8 +220,8 @@ for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$.
 It is seen that two extra terms are included that adjusts velocities based on the movement of the surface, essentially making the pStokes equation aware of the evolving domain. The added term on the left-hand side accounts for the movement due to the ice flow, and the term on the right-hand side the movement due to accumulation or ablation. In addition an implicitness parameter $\theta \in \mathbb{R}_+$ has also been introduced, where setting $\theta = 0$ give an explicit solver and $\theta = 1$ a (quasi) implicit solver. In the code the FSSA parameter in the FSSA assembly routine corresponds to $\theta \Delta t$.
 
 # DEMOS
-The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation. These modules are somewhat independent, and it is largely up to the user to couple the two. Full working examples on how this is done in both the C++ and Python interface is provided in the demos below. The demos can be also found under /demos.
-. 
+The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation, respectively. These modules are deliberately made independent, and it is up to the discretion of the user to couple the two. Full working examples on how this is done in, for both the C++ and Python interface, is provided in the demos below. The demos can be also found under /demos, where CMake files are provided for compiling the C++ code.
+
 ## C++
 ```C++
 
