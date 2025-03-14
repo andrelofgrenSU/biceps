@@ -17,6 +17,7 @@
  * along with Biceps. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <logger.hpp>
+#include <enums.hpp>
 
 Logger::Logger(int level, std::ostream &stream) : level(level), output_stream(&stream) {}
 Logger::Logger() : level(WARN), output_stream(&std::cout) {}

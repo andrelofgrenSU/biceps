@@ -68,12 +68,12 @@ add_custom_target(
 )
 
 add_custom_target(
-    tests
+    test
     DEPENDS
     test_mesh
     test_fem_2d
     test_poisson
     test_stokes
     COMMAND
-    ./mesh_test_suite && ./fem2d_test_suite && ./poisson_test_suite.cpp && ./stokes_test_suite
+    ./mesh_test_suite && ./fem_2d_test_suite && ./poisson_test_suite && ./stokes_test_suite
 )

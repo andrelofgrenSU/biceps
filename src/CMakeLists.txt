@@ -54,13 +54,13 @@ include_directories(
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/include
     ${Boost_INCLUDE_DIRS}
-    ${Python3_INCLUDE_DIRS}
+    ${Python_INCLUDE_DIRS}
 )
 target_link_libraries(
     biceps
     Eigen3::Eigen
     ${Boost_LIBRARIES}
-    ${Python3_LIBRARIES}
+    ${Python_LIBRARIES}
     ${eigenpy_LIBRARIES}
 )
 install(TARGETS biceps DESTINATION lib)

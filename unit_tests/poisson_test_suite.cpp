@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test_manufactured_solution_case_2)
         pp.solve_linear_system();
         Eigen::VectorX<FloatType> x_vec = pp.mesh.pmat(Eigen::all, 0);
         Eigen::VectorX<FloatType> z_vec = pp.mesh.pmat(Eigen::all, 1);
-    
+
         Eigen::VectorX<FloatType> ue_vec = Eigen::VectorX<FloatType>::Zero(x_vec.size());
         for (int dof = 0; dof < x_vec.size(); ++dof) {
             ue_vec(dof) = exact_sol_func_manufactured_case_2(

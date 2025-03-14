@@ -269,7 +269,7 @@ z0 = 0.5  # Amplitude of surface undulation (km)
 A = 100.0  # Rate factor
 n_i = 3.0  # Glen exponent
 fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
-fssa_param = 0  # No additional parameter for FSSA
+fssa_param = 0  # Stabilization parameter for FSSA
 eps_reg_2 = 1e-10  # Regularization parameter
 
 nx = 50  # Number of elements in x-direction

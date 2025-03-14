@@ -17,7 +17,6 @@
  * along with Biceps. If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
-
 #include <float_type.hpp>
 #include <vector>
 #include <Eigen/Dense>
