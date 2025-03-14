@@ -168,7 +168,7 @@ for all $w \in \mathcal{Z}$.
 ### Free surface stabilization
 The above time discretization are both examples of explicit (w.r.t. surface velocities) time stepping schemes, and are therefore subject to stability constraints on the time-step size. However, solving for the unknown velocities at the next time step in a fully implicit manner requires an iterative algorithm to resolve the nonlinearity. A more computationally appealing approach is to combine the stability of an implicit scheme with the low computational cost of an explicit scheme. A method to this end is the so-called free-surface stabilization algorithm (FSSA), which numerical studies have shown to increase stable time-step size up to an order of magnitude.
 
-For the purpose of deriving this method, note that a fully implicit scheme corresponds to replacing the domain of integration in the weak formulation of the pStokes equation with$\Omega^{k+1}$. 
+For the purpose of deriving this method, note that a fully implicit scheme corresponds to replacing the domain of integration in the weak formulation of the pStokes equation with $\Omega^{k+1}$. 
 
 For the fully implicit scheme, the weak form reads:
 
