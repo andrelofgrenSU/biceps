@@ -180,7 +180,7 @@ Find $\mathbf{u}^{k+1} \in \mathcal{U}$ and $p^{k+1} \in \mathcal{Q}$, such that
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
 
-Next all integrals on the left-hand side are approximated as $(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}}$. Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
+Next all integrals on the left-hand side are approximated as $$(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}}$$. Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
 
 ```math
 (\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (\mathbf{u}_b \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
