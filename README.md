@@ -1,5 +1,5 @@
 # Biceps - (B) Ice pStokes Solver
-Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page). It is mainly intended for theoretical investigation of numerical stability. 
+Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page). It is mainly intended for investigating numerical stability of viscous free-surface flows.
 
 # Build instruction
 In the following instructions, note that commands requiring elevated privileges are prepended with a '#', and commands that can be run as regular user with a '$'.
@@ -68,7 +68,7 @@ The steps for installing this repository is:
 
 5. Install: ```# make install```
 
-# Governing equations
+# The ice equations
 
 ## The pStokes equations
 
