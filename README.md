@@ -198,7 +198,7 @@ for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$.
 It is seen that two extra terms are included that adjusts velocities based on the movement of the surface, essentially making the pStokes equation aware of the evolving domain. The added term on the left-hand side accounts for the movement due to the ice flow, and the term on the right-hand side the movement due to accumulation or ablation. In addition an implicitness parameter $\theta \in \mathbb{R}_+$ has also been introduced, where setting $\theta = 0$ give an explicit solver and $\theta = 1$ a (quasi) implicit solver. In the code the FSSA parameter in the FSSA assembly routine corresponds to $\theta \Delta t$.
 
 # DEMOS
-The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation. These modules are largely independent, and it is largely up to the discretion of the user to couple the two. Full working examples on how this is done in both the C++ and Python interface is provided in the demos below. The demos can be also found under /demos.
+The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation. These modules are somewhat independent, and it is largely up to the user to couple the two. Full working examples on how this is done in both the C++ and Python interface is provided in the demos below. The demos can be also found under /demos.
 . 
 ## C++
 ```C++
