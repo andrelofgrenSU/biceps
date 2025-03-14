@@ -1,4 +1,4 @@
-# About
+# Biceps - (B) Ice pStokes Solver
 Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page). It is mainly intended for theoretical investigation of numerical stability. 
 
 # Build instruction
