@@ -183,14 +183,14 @@ for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$.
 Next all integrals on the left-hand side are approximated as $(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}$. Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
 
 ```math
-(\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{v}, (\mathbf{u}_b \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
+(\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (\mathbf{u}_b \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
 ```
 The boundary velocity $\mathbf{u}_b = \mathbf{u} + a_s \mathbf{e}_z$ is simply the sum of the surface velocity and the vertical accumulation rate. Inserting this into the above and moving the term involving $\mathbf{u}$ to the left-hand side gives the free-surface stabilized weak formulation of the pStokes equations:
 
 Find $\tilde{\mathbf{u}}^{k+1} \in \mathcal{U}$ and $\tilde{p}^{k+1} \in \mathcal{Q}$, such that
 
 ```math
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} - (\mathbf{v}, (\mathbf{u} \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s} = (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{v}, (a_s \mathbf{e}_z \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} - \theta \Delta t (\mathbf{v}, (\mathbf{u} \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s} = (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (a_s \mathbf{e}_z \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
 ```
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
