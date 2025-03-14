@@ -9,7 +9,23 @@ set(USE_LONG_DOUBLE OFF)
 set(DOXYGEN_HTML ON)
 set(DOXYGEN_LATEX ON)
 
+# Build Python interface
+find_package(Python3 COMPONENTS Development NumPy QUIET)
+find_package(Boost 1.74 COMPONENTS python QUIET)
+find_package(eigenpy QUIET)
+if(WITH_PYTHON AND Python_FOUND AND Python_Development_FOUND AND Python_NumPy_FOUND)
+    message(STATUS "Python found, enabling Python interface.")
 
+    set(PYTHON_WRAPPER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/src/pywrapper.cpp)
+else()
+    if(WITH_PYTHON)
+        message(WARNING "Python not found, but WITH_PYTHON is ON. Installing without the Python interface.")
+    else()
+        message(STATUS "Python interface is disabled.")
+    endif()
+endif()
+
+# Build Documentation
 find_package(Doxygen QUIET)
 if(ENABLE_DOCS AND DOXYGEN_FOUND)
     message(STATUS "Doxygen found, enabling documentation target.")
@@ -25,8 +41,7 @@ if(ENABLE_DOCS AND DOXYGEN_FOUND)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generate documentation using Doxygen"
         VERBATIM
-    )
-else()
+) else()
     if(ENABLE_DOCS)
         message(WARNING "Doxygen not found, but ENABLE_DOCS is ON. Documentation will not be built.")
     else()
@@ -34,10 +49,10 @@ else()
     endif()
 endif()
 
+find_package(Boost 1.74 COMPONENTS python unit_test_framework QUIET)
+
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
-find_package(Python3 COMPONENTS Development NumPy REQUIRED)
-find_package(eigenpy REQUIRED)
-find_package(Boost 1.74 COMPONENTS python unit_test_framework REQUIRED)
+find_package(Boost 1.74 REQUIRED)
 
 add_subdirectory(src)
 add_subdirectory(unit_tests)
