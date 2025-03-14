@@ -68,7 +68,7 @@ The steps for installing this repository is:
 
 5. Install: ```# make install```
 
-# The ice equations
+# Theory
 
 ## The pStokes equations
 
