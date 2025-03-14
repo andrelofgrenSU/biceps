@@ -66,7 +66,7 @@ The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respective
 \end{aligned}
 ```
 
-Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f}$ is the volumetric external body force acting on each fluid element (gravity in case of ice). Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
+Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f}$ is the volumetric external body force acting on each fluid element (gravity in case of ice sheets and glaciers). Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
 
 
 $$\eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.$$
