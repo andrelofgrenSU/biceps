@@ -131,6 +131,8 @@ for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. This is then i
 ```
 
 ## The free-surface equation
+
+### Strong formulation
 The interface between the ice and atmosphere is modeled as freely moving boundary, this interface moves either due to ice particles being transported by the ice flow across the boundary, or due snow accumulating or ablating on top of it. Tracking the free-surface height $h(x, t)$, its evolution until time $T$ is described by the so-called free-surface equation
 
 ```math
