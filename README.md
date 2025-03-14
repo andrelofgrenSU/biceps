@@ -141,7 +141,7 @@ The interface between the ice and atmosphere is modeled as freely moving boundar
 \end{equation}
 ```
 
-where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface velocities, $a_$s is the surface mass balance, and $\Gamma_s^{\perp}$ is the projection of the surface onto the horizontal line $z = 0$.
+where $u^s_x$ and $u^s_z$ are the respective horizontal and vertical ice surface velocities, $a_s$ is the surface mass balance, and $\Gamma_s^{\perp}$ is the projection of the surface onto the horizontal line $z = 0$.
 
 ### Weak formulation
 Similarly, in this case the weak formulation is derived by multiplying by a test function $w$ and integrating over $\Gamma_s^{\perp}$, resulting in the following problem:

@@ -37,6 +37,9 @@
 # CMake build files
 .build
 
+# Compile flags
+.compile_commands.json
+
 # Python
 __pycache__/
 *.py[cod]
