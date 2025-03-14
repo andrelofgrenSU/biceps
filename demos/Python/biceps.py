@@ -20,6 +20,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import biceps as bp
 
+GRAVITY = 9.8
+ICE_DENSITY = 910
+
 
 # Define the expressions for the bottom and surface elevations
 def zb_expr(x): return 0.0  # Flat bottom surface
@@ -28,21 +31,21 @@ def zs_expr(x): return H + z0*np.cos(np.pi*x/L)  # Undulating surface elevation
 
 # Define external force functions
 def force_x(x, z): return 0.0  # No horizontal force
-def force_z(x, z): return -1e-3*bp.GRAVITY*bp.ICE_DENSITY  # Gravity-driven force in the z-direction
+def force_z(x, z): return -1e-3*GRAVITY*ICE_DENSITY  # Gravity force in the z-direction
 
 
 # Define domain and grid parameters
-x0 = 0.0
-x1 = 100.0
+x0 = 0.0  # Left end
+x1 = 100.0  # Right end
 L = x1 - x0  # Length of the domain
 H = 1  # Mean height of the domain
 z0 = 0.5  # Amplitude of surface undulation
 
-A = 100.0  # Coefficient for viscosity term
-n_i = 3.0  # Flow law exponent
-fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
-fssa_param = 0  # No additional parameter for FSSA
+A = 100.0  # Ice softness parameter
+n_i = 3.0  # glen exponent
 eps_reg_2 = 1e-10  # Regularization parameter
+fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
+fssa_param = 0  # Stabilization parameter in FSSA
 
 nx = 50  # Number of elements in x-direction
 nz = 5  # Number of elements in z-direction
@@ -52,7 +55,7 @@ dt = 1  # Time step size
 deg_u = 2  # Polynomial degree for velocity field
 deg_p = 1  # Polynomial degree for pressure field
 deg_h = 1  # Polynomial degree for height field
-gp = 5  # Number of Gauss points per element
+gauss_precision = 5  # Number of Gauss points in each direction per element
 
 max_iter = 100  # Maximum number of iterations for solver
 stol = 1e-10  # Convergence tolerance for solver
@@ -78,6 +81,7 @@ spmat_u = u_mesh_2d.pmat[sdofs_u, :].copy()
 spmat_h = u_mesh_2d.pmat[sdofs_h, :].copy()
 xs_vec = spmat_h[:, 0].copy()
 zs_vec = spmat_h[:, 1].copy()
+# Project mesh to z=0
 spmat_u[:, 1] = 0
 spmat_h[:, 1] = 0
 
@@ -85,7 +89,7 @@ spmat_h[:, 1] = 0
 u_mesh_1d = bp.IntervalMesh(spmat_u, deg_u)
 h_mesh_1d = bp.IntervalMesh(spmat_h, deg_h)
 
-# Apply boundary conditions
+# Define ids for Dirichlet boundary condition
 ux_boundary_id = (
     bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
     bp.DOMAIN_IDS_2D.WEST_ID |
@@ -95,13 +99,13 @@ ux_boundary_id = (
 )
 uz_boundary_id = bp.DOMAIN_IDS_2D.BED_ID
 
-# Initialize FEM functions for velocity and height
+# Initialize FEM functions for height, velocity, and accumulation
 ux_func = bp.FEMFunction1D(u_mesh_1d)
 uz_func = bp.FEMFunction1D(u_mesh_1d)
 h0_func = bp.FEMFunction1D(h_mesh_1d)
 ac_func = bp.FEMFunction1D(h_mesh_1d)
 
-# Initialize Stokes and Free Surface Problems
+# Initialize the pStokes and Free Surface Problem
 psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
 
@@ -113,7 +117,7 @@ for k in range(nt):
     # Assemble and solve the nonlinear pStokes problem
     psp.solve_nonlinear_system_picard(
         A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
-        ux_boundary_id, uz_boundary_id, max_iter, stol, gp
+        ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
     )
 
     # Extract velocity field solutions
@@ -128,9 +132,11 @@ for k in range(nt):
     print(f"A = {u_mesh_2d.area()}")
 
     # Solve the free surface problem using explicit time stepping
-    fsp.assemble_lhs_explicit(gp)
+    fsp.assemble_lhs_explicit(gauss_precision)
     fsp.commit_lhs()
-    fsp.assemble_rhs_explicit(h0_func, ux_func, uz_func, ac_func, dt, gp)
+    fsp.assemble_rhs_explicit(
+        h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+    )
     fsp.solve_linear_system()
 
     # Update surface elevation
