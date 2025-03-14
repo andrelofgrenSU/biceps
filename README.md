@@ -209,7 +209,7 @@ Next all integrals on the left-hand side are approximated as
 (\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}}.
 ```
 
-Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
+Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated by a Taylor expansion
 
 ```math
 (\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (\mathbf{u}_b \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
