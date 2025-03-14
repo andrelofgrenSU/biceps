@@ -1,14 +1,18 @@
 # About
-Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. It is mainly intended for theoretical investigation of numerical stability. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page).
+Biceps is a prognostic two-dimensional full-Stokes ice-sheet solver. Furthermore, it comes bundled with its own FEM libraries implemented using the numerical linear algebra library [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page). It is mainly intended for theoretical investigation of numerical stability. 
 
 # Build instruction
 In the following instructions, note that commands requiring elevated privileges are prepended with a '#', and commands that can be run as regular user with a '$'.
 ## Linux (Ubuntu/Debian)
 
 ### C++
-This project has rather few dependencies, a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
+This project has rather few dependencies; a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
 ```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
+
+```cmake
+cmake .. -DCMAKE_BUILD_TYPE=Release
+```
 
 ### Python
 
@@ -24,15 +28,18 @@ Then to install run:
 
 ```# make install```
 
-CMake flag: -DWITH_PYTHON:boolean
+```cmake
+cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_PYTHON=ON
+```
 
 ### Documentation
 
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/):
 
 ```# apt install doxygen graphviz```
-
-CMake flag: -DBUILD_DOCS:boolean
+```cmake
+cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=ON
+```
 
 ### Example build
 
@@ -41,7 +48,7 @@ The steps for installing this repository is:
 
 2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DBUILD_DOCS=OFF -DUSE_LONG_DOUBLE=OFF -DTESTS=OFF```
 
-3. Run tests (optional): ```# make install```
+3. Run tests (optional): ```# make test mesh && make test ```
 
 4. Install: ```# make install```
 
@@ -87,10 +94,10 @@ The pStokes equations are solved using the finite element method (FEM), which di
 Find $\mathbf{u} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
 
 ```math
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\mathbf{v}, \sigma(\mathbf{u}) \hat{\mathbf{n}} )_{\partial \Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega} - (\nabla \cdot \mathbf{v}, p)_{\Omega} - (q, \nabla \cdot \mathbf{u})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
 ```
 
-for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. Here $\mathcal{U}, \mathcal{V}$ and $\mathcal{Q}$ are appropriate Sobolev spaces, in particular the discretized trial spaces $\mathcal{U}_h \subset \mathcal{U}$ and $\mathcal{Q}_h \in \mathcal{Q}$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions for $\mathcal{U}$ and linear basis for $\mathcal{Q}$.
+for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. Here $\mathcal{U}, \mathcal{V}$ and $\mathcal{Q}$ are appropriate Sobolev spaces, in particular the discretized trial spaces $\mathcal{U}_h \subset \mathcal{U}$ and $\mathcal{Q}_h \subset \mathcal{Q}$ should be chosen so that they satisfy a discrete *inf-sup* stability condition. A common choice is so-called Taylor-Hood element, using quadratic basis functions to construct $\mathcal{U}_h$ and linear basis for $\mathcal{Q}_h$.
 
 ### Nonlinear iterations
 To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, with $\mathbf{u}_0$ being some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
@@ -138,7 +145,7 @@ Find $h^{k+1} \in \mathcal{Z}$ such that
 ```
 for all $w \in \mathcal{Z}$. Thus setting $gamma = 0$ and $\gamma = 1$ results in an explicit- and semi-implicit scheme, respectively.
 
-Rearragning, the weak formulation for each case is:
+Rearranging, the weak formulation for each case is:
 
 **Explicit**
 Find $h^{k+1} \in \mathcal{Z}$ such that
@@ -173,27 +180,26 @@ Find $\mathbf{u}^{k+1} \in \mathcal{U}$ and $p^{k+1} \in \mathcal{Q}$, such that
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
 
-Next all integrals on the left-hand side are approximated as $(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}$. Now only the right hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
+Next all integrals on the left-hand side are approximated as $(\cdot, \cdot)_{\Omega^{k+1}} \approx (\cdot, \cdot)_{\Omega^{k}$. Now only the right-hand side is integrated over $\Omega^{k+1}$, which is still unknown, but can be estimated using a Taylor expansion
 
 ```math
-(\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{u}_b )_{\Gamma^s}
-
+(\mathbf{v}, \mathbf{f})_{\Omega^{k+1}} \approx (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{v}, (\mathbf{u}_b \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s}
 ```
-The boundary velocity $\mathbf{u}_b = \mathbf{u} + a_s \mathbf{e}_z$ is simply the sum of the flow velocity and the vertical accumulation rate. Inserting this into the above and moving the term involving $\mathbf{u}$ to the left-hand side give the free-surface stabilized weak formulation of the pStokes equations:
+The boundary velocity $\mathbf{u}_b = \mathbf{u} + a_s \mathbf{e}_z$ is simply the sum of the surface velocity and the vertical accumulation rate. Inserting this into the above and moving the term involving $\mathbf{u}$ to the left-hand side gives the free-surface stabilized weak formulation of the pStokes equations:
 
 Find $\tilde{\mathbf{u}}^{k+1} \in \mathcal{U}$ and $\tilde{p}^{k+1} \in \mathcal{Q}$, such that
 
 ```math
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} = (\mathbf{v}, \mathbf{f})_{\Omega^{k+1}}
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^{k+1}} - (\mathbf{v}, (\mathbf{u} \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s} = (\mathbf{v}, \mathbf{f})_{\Omega^k} + (\mathbf{v}, (a_s \mathbf{e}_z \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s}
 ```
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
 
-
+It is seen that two extra terms are included that adjusts velocities based on the movement of the surface, essentially making the pStokes equation aware of the evolving domain. The added term on the left-hand side accounts for the movement due to the ice flow, and the term on the right-hand side the movement due to accumulation or ablation. In addition an implicitness parameter $\theta \in \mathbb{R}_+$ has also been introduced, where setting $\theta = 0$ give an explicit solver and $\theta = 1$ a (quasi) implicit solver. In the code the FSSA parameter in the FSSA assembly routine corresponds to $\theta \Delta t$.
 
 # DEMOS
-The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem. It is then up to the user to couple these equations. Full working examples on how this is done is provided in the demos below. Below are fully working examples using the C++ and Python interfaces. The demos can be also found under /demos.
-
+The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation. These modules are largely independent, and it is largely up to the discretion of the user to couple the two. Full working examples on how this is done in both the C++ and Python interface is provided in the demos below. The demos can be also found under /demos.
+. 
 ## C++
 ```C++
 
@@ -211,8 +217,8 @@ import matplotlib.pyplot as plt
 import biceps as bp
 
 GRAVITY = 9.8  # Gravitational acceleration (m/s^2)
-ICE_DENSITY = 910  $ Ice density (kg/m^3)
-FORCE_Z = -1e-3*ICE_DENSITY*GRAVITY  $ Force in z direction converted to units in MPa, yr and km
+ICE_DENSITY = 910  # Ice density (kg/m^3)
+FORCE_Z = -1e-3*ICE_DENSITY*GRAVITY  # Force in z direction converted to units in MPa, yr and km
 
 # Define the expressions for the bottom and surface elevations
 def zb_expr(x): return 0.0  # Flat bottom surface
