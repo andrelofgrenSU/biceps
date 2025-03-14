@@ -26,9 +26,9 @@ set(CMAKE_BUILD_TYPE Release)
 set(USE_LONG_DOUBLE OFF)
 set(DOXYGEN_HTML ON)
 set(DOXYGEN_LATEX ON)
-set(ENABLE_PYTHON OFF)
-set(ENABLE_DOCS OFF)
-set(ENABLE_TESTS OFF)
+set(ENABLE_PYTHON ON)
+set(ENABLE_DOCS ON)
+set(ENABLE_TESTS ON)
 
 # Check for Eigen3 and Boost (mandatory)
 find_package(Eigen3 3.4 REQUIRED NO_MODULE)
@@ -39,6 +39,7 @@ find_package(Python COMPONENTS Development NumPy QUIET)
 find_package(Boost 1.74 COMPONENTS python QUIET)
 find_package(eigenpy QUIET)
 if(
+    BUILD_SHARED_LIBS AND
     ENABLE_PYTHON AND
     Python_FOUND AND
     Python_Development_FOUND AND
@@ -48,6 +49,9 @@ if(
 )
     set(PYTHON_WRAPPER ${CMAKE_SOURCE_DIR}/src/pywrapper.cpp)
     message(STATUS "Building Python interface.")
+elseif(ENABLE_PYTHON AND NOT BUILD_SHARED_LIBS)
+    set(ENABLE_PYTHON OFF)
+    message(WARNING "BUILD_SHARED_LIBS is OFF, but ENABLE_PYTHON is ON; Python interface will not be built.")
 elseif(ENABLE_PYTHON AND NOT Python_FOUND)
     set(ENABLE_PYTHON OFF)
     message(WARNING "Python not found, but ENABLE_PYTHON is ON; Python interface will not be built.")
@@ -78,7 +82,7 @@ if(ENABLE_DOCS AND DOXYGEN_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in ${DOXYGEN_CONFIG_FILE} @ONLY)
 
     add_custom_target(
-        doc
+        docs
         COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_CONFIG_FILE}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Generate documentation using Doxygen"
@@ -89,7 +93,7 @@ if(ENABLE_DOCS AND DOXYGEN_FOUND)
     if(DOXYGEN_HTML)
         install(
             DIRECTORY ${DOXYGEN_OUTPUT_DIR}/html
-            DESTINATION share/doc/biceps/
+            DESTINATION share/doc/biceps
             PATTERN ".*" EXCLUDE
         )
     endif()
@@ -97,7 +101,7 @@ if(ENABLE_DOCS AND DOXYGEN_FOUND)
     if(DOXYGEN_LATEX)
         install(
             DIRECTORY ${DOXYGEN_OUTPUT_DIR}/latex
-            DESTINATION share/doc/biceps/
+            DESTINATION share/doc/biceps
             PATTERN ".*" EXCLUDE
         )
     endif()
