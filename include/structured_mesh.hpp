@@ -644,14 +644,14 @@ public:
      * @brief Extrudes the mesh in the z-direction using specified bottom and top surface elevations.
      *
      * This function updates the z-coordinates of the mesh based on the provided vectors `zb_vec_p1` 
-     * and `zs_vec_p1`, which represent the bottom and top surface elevations at key points.
+     * and `zs_vec_p1`, which represent the bottom and top surface elevations at vertices points.
      * 
      * The method ensures that the correct z-positions are assigned to all cell corner nodes 
      * and interpolates values for interior and edge nodes when using quadratic elements.
      * After updating the mesh geometry, it recomputes boundary normals and tangents.
      *
-     * @param[in] zb_vec_p1 A vector containing the z-coordinates of the bottom surface at key x-positions.
-     * @param[in] zs_vec_p1 A vector containing the z-coordinates of the top surface at key x-positions.
+     * @param[in] zb_vec_p1 A vector containing the z-coordinates of the bottom surface at mesh vertices.
+     * @param[in] zs_vec_p1 A vector containing the z-coordinates of the top surface at mesh vertices.
      */
     void extrude_z(
         const Eigen::VectorX<FloatType> &zb_vec_p1,
@@ -665,7 +665,7 @@ public:
      * from the mesh and calls the overloaded `extrude_z` function to apply the new 
      * top surface elevation.
      *
-     * @param[in] zs_vec_p1 A vector containing the z-coordinates of the top surface at key x-positions.
+     * @param[in] zs_vec_p1 A vector containing the z-coordinates of the top surface at mesh vertices.
      */
     void extrude_z(const Eigen::VectorX<FloatType> &zs_vec_p1);
 

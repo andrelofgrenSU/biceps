@@ -84,12 +84,15 @@ The velocity- and pressure distribution, denoted $\mathbf{u}$ and $p$ respective
 
 Here $\dot{\varepsilon}(\mathbf{u}) = \frac{1}{2} \left ( \nabla \mathbf{u} + \nabla{\mathbf{u}}^T \right )$ is the strain-rate tensor, $\mathbf{f}$ is the volumetric external body force acting on each fluid element (gravity in case of ice sheets and glaciers). Furthermore, ice is a shear thinning fluid with the viscosity function $\eta$ following a power-law rheology known as Glen's flow law
 
-
-$$\eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.$$
+```math
+\eta(\mathbf{u}) = A^{\frac{1}{n}} \left (\dot{\varepsilon}^2_e (\mathbf{u}) + \dot{\varepsilon}^2_0 \right)^{\frac{1-n}{2n}}.
+```
 
 Here $A$ is the so-called rate factor or ice softness parameter, $n \approx 3$ is the glen exponent, and $\dot{\varepsilon}_e$ is the effective strain rate
 
-$$\dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right)$$
+```math
+\dot{\varepsilon}^2_e = \frac{1}{2} \left (\text{tr} \left (\dot{\varepsilon}^2 \right ) - \text{tr}^2 \left (\dot{\varepsilon} \right ) \right).
+```
 
 In addition, a small regularization term $\varepsilon_0$ is included to prevent infinite viscosity at zero effective strain rate.
 
@@ -161,11 +164,12 @@ Find $h^{k+1} \in \mathcal{Z}$ such that
 ```math
     \left (w, \frac{h^{k+1} - h^k}{\Delta t} \right)_{\Gamma_s^{\perp}} + \left (w, u_x^s \frac{\partial h^{k + \gamma}}{\partial x} \right)_{\Gamma_s^{\perp}} = \left (w, u^s_z + a_s\right )_{\Gamma_s^{\perp}}
 ```
-for all $w \in \mathcal{Z}$. Thus setting $\gamma = 0$ and $\gamma = 1$ results in an explicit- and semi-implicit scheme, respectively.
+for all $w \in \mathcal{Z}$, where setting $\gamma = 0$ and $\gamma = 1$ results in an explicit- and semi-implicit scheme, respectively.
 
-Rearranging, the weak formulation for each case is:
+After rearranging terms, the weak formulation for each case is:
 
 **Explicit**
+
 Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math
@@ -175,6 +179,7 @@ Find $h^{k+1} \in \mathcal{Z}$ such that
 for all $w \in \mathcal{Z}$.
 
 **Semi implicit**
+
 Find $h^{k+1} \in \mathcal{Z}$ such that
 
 ```math

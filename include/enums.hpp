@@ -58,6 +58,21 @@ namespace MESH2D {
     };
 }
 
+
+/**
+ * @enum LOG_LEVELS
+ * @brief Enum representing different log levels for the Logger class.
+ * 
+ * The log levels are used to categorize the importance of log messages.
+ */
+enum LOG_LEVELS {
+    ERROR = 1, /**< Error log level, for critical errors */
+    WARN = 2,  /**< Warning log level, for non-critical issues */
+    INFO = 3,  /**< Info log level, for informational messages */
+    TRACE = 4, /**< Trace log level, for detailed logs */
+    DEBUG = 5  /**< Debug log level, for debugging purposes */
+};
+
 enum FSSA_VERSION {
     FSSA_NONE,
     FSSA_VERTICAL,
