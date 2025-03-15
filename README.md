@@ -248,10 +248,17 @@ and if compilation succeeded, finally install it
 ```
 # make install 
 ```
-
 Lastly, install the default [gnuplot]{https://gnuplot.info} backend
 ```
 # apt install gnuplot
+```
+To run the demo below first compile and install it:
+```
+$ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release && make && make install && cd ..
+```
+And then run the executable:
+```
+$ bin/biceps_demo
 ```
 
 ```C++
@@ -417,6 +424,9 @@ int main(int argc, char *argv[])
 This demo requires [Matplotlib](https://matplotlib.org):
 
 ```# apt install python3-matplotlib```
+
+To run:
+```$ python biceps_demo.py```
 
 ```python
 import numpy as np
