@@ -39,7 +39,7 @@ x0 = 0.0  # Left end
 x1 = 100.0  # Right end
 L = x1 - x0  # Length of the domain
 H = 1  # Mean height of the domain
-z0 = 0.5  # Amplitude of surface undulation
+z0 = 0.1  # Amplitude of surface undulation
 
 A = 100.0  # Ice softness parameter
 n_i = 3.0  # glen exponent
@@ -49,8 +49,8 @@ fssa_param = 0  # Stabilization parameter in FSSA
 
 nx = 50  # Number of elements in x-direction
 nz = 5  # Number of elements in z-direction
-nt = 10  # Number of time steps
-dt = 1  # Time step size
+nt = 100  # Number of time steps
+dt = 35  # Time step size
 
 deg_u = 2  # Polynomial degree for velocity field
 deg_p = 1  # Polynomial degree for pressure field
@@ -58,9 +58,8 @@ deg_h = 1  # Polynomial degree for height field
 gauss_precision = 5  # Number of Gauss points in each direction per element
 
 max_iter = 100  # Maximum number of iterations for solver
-stol = 1e-10  # Convergence tolerance for solver
-
-cell_type = bp.CELL_TYPE_2D.TRIANGLE_LEFT  # Type of triangular element
+stol = 1e-6  # Convergence tolerance for solver
+cell_type = bp.CELL_TYPE_2D.TRIANGLE_LEFT  # 2D mesh cell type
 
 # Create structured meshes for velocity, pressure, and height fields
 u_mesh_2d = bp.StructuredMesh(nx, nz, deg_u, cell_type)
@@ -105,6 +104,9 @@ uz_func = bp.FEMFunction1D(u_mesh_1d)
 h0_func = bp.FEMFunction1D(h_mesh_1d)
 ac_func = bp.FEMFunction1D(h_mesh_1d)
 
+# For L2 norm calculation
+h0_func.assemble_mass_matrix()
+
 # Initialize the pStokes and Free Surface Problem
 psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
@@ -119,17 +121,21 @@ for k in range(nt):
         A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
         ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
     )
+    # Clear lhs matrix and rhs vector
+    psp.reset_system()
 
     # Extract velocity field solutions
     ux_vec = psp.velocity_x().vals
     uz_vec = psp.velocity_z().vals
+    # Set free surface velocity
     ux_func.vals = ux_vec[sdofs_u]
     uz_func.vals = uz_vec[sdofs_u]
-    h0_func.vals = zs_vec  # Update initial height values
+    # Set initial height
+    h0_func.vals = zs_vec.copy()
 
     # Print surface energy and domain area
-    print(f"||E|| = {h0_func.L2_norm()}")
-    print(f"A = {u_mesh_2d.area()}")
+    print(f"||E|| = {h0_func.L2_norm(): .16f}")
+    print(f"A = {u_mesh_2d.area(): .16f}")
 
     # Solve the free surface problem using explicit time stepping
     fsp.assemble_lhs_explicit(gauss_precision)
@@ -138,16 +144,16 @@ for k in range(nt):
         h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
     )
     fsp.solve_linear_system()
+    # Clear lhs matrix and rhs vector
+    fsp.reset_system()
 
     # Update surface elevation
-    zs_vec = fsp.zs_vec
+    zs_vec = fsp.zs_vec.copy()
 
     # Update mesh with new surface elevation
     u_mesh_2d.extrude_z(zs_vec)
     p_mesh_2d.extrude_z(zs_vec)
 
-    # Plot updated surface profile
-    plt.plot(xs_vec, zs_vec)
-
-# Show final plot
+# Plot final surface
+plt.plot(xs_vec, zs_vec)
 plt.show()

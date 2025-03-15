@@ -818,11 +818,19 @@ void pStokesProblem::solve_nonlinear_system_picard(
 
     // Initialize error and old/new velocity functions for Picard iteration
     FloatType error_step = 0.0;
-    FEMFunction2D ux_old_func = velocity_x(), uz_old_func = velocity_z();
-    FEMFunction2D ux_new_func = velocity_x(), uz_new_func = velocity_z();
-    FEMFunction2D ex_func(u_mesh), ez_func(u_mesh);
+    FEMFunction2D ux_old_func = velocity_x();
+    FEMFunction2D uz_old_func = velocity_z();
+    FEMFunction2D ux_new_func(u_mesh);
+    FEMFunction2D uz_new_func(u_mesh);
+    FEMFunction2D ex_func(u_mesh);
+    FEMFunction2D ez_func(u_mesh);
+
     // Assemble the mass matrix for calculating the L2 error
     Eigen::SparseMatrix<FloatType> M = FEM2D::assemble_mass_matrix(u_mesh, u_mesh.degree() + 1);
+    ux_new_func.set_mass_matrix(M);
+    uz_new_func.set_mass_matrix(M);
+    ex_func.set_mass_matrix(M);
+    ez_func.set_mass_matrix(M);
 
     // Picard iteration loop
     int ip = 0;
@@ -868,9 +876,6 @@ void pStokesProblem::solve_nonlinear_system_picard(
     logger.log_msg((boost::format{"min uz, max uz: %.4g, %.4g m/yr"} % (1e3*w_vec(uz_v2d).minCoeff()) % (1e3*w_vec(uz_v2d).maxCoeff())).str(), INFO);
     logger.log_msg((boost::format{"min p, max p: %.4g, %.4g MPa"} % (w_vec(p_v2d).minCoeff()) % (w_vec(p_v2d).maxCoeff())).str(), INFO);
     logger.log_msg("-------------------------------------", INFO);
-
-    // Clear left-hand side matrix and right-hand side vector
-    reset_system();
 }
 FEMFunction2D pStokesProblem::velocity_x()
 {

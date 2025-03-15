@@ -224,18 +224,42 @@ Find $\tilde{\mathbf{u}}^{k+1} \in \mathcal{U}$ and $\tilde{p}^{k+1} \in \mathca
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
 
-It is seen that two extra terms are included that adjusts velocities based on the movement of the surface, essentially making the pStokes equation aware of the evolving domain. The added term on the left-hand side accounts for the movement due to the ice flow, and the term on the right-hand side the movement due to accumulation or ablation. In addition an implicitness parameter $\theta \in \mathbb{R}_+$ has also been introduced, where setting $\theta = 0$ give an explicit solver and $\theta = 1$ a (quasi) implicit solver. In the code the FSSA parameter in the FSSA assembly routine corresponds to $\theta \Delta t$.
+It is seen that two extra terms are included that adjusts velocities based on the movement of the surface, essentially making the pStokes equation aware of the evolving domain. The added term on the left-hand side accounts for the movement due to the ice flow, and the term on the right-hand side the movement due to accumulation or ablation. In addition an implicitness parameter $\theta \in \mathbb{R}_+$ has also been introduced, where setting $\theta = 0$ results in an explicit solver and $\theta = 1$ a (quasi) implicit solver. In the code the FSSA parameter in the FSSA assembly routine corresponds to $\theta \Delta t$.
 
 # Demos
 The two main modules in this project are the pStokesProblem and the FreeSurfaceProblem, used for setting up and solving the pStokes equation and the free-surface equation, respectively. These modules are deliberately made independent, and it is up to the discretion of the user to couple the two. Full working examples on how this is done in, for both the C++ and Python interface, is provided in the demos below. The demos can be also found under /demos, where CMake files are provided for compiling the C++ code.
 
 ## C++
 
-Running this demo also requires [matplot++](https://matplotlib.org), ang [gnuplot] which on debian-based system can be installed with:
+Running this demo also requires [matplot++](https://matplotlib.org), a C++ plotting library with an API inspired by matplotlib. A tarball is available from [here]{https://github.com/alandefreitas/matplotplusplus/archive/refs/tags/v1.2.2.tar.gz}. To install it, first extract it
+
+```
+$ tar -xvzf v1.2.2.tar.gz && cd matplotplusplus-1.2.2
+```
+then configure
+```
+$ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=ON -DMATPLOTPP_BUILD_EXAMPLES=OFF -DMATPLOTPP_BUILD_TESTS=OFF
+```
+if successful, build it (using all available cores for fast compilation)
+```sh
+$ make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq)
+```
+and if compilation succeeded, finally install it
+```
+# make install 
+```
+
+Lastly, install the default [gnuplot] backend
+```
+# apt install gnuplot
+```
+
 ```C++
 #include <enums.hpp>
 #include <pstokes_fem.hpp>
 #include <free_surface_fem.hpp>
+#include <boost/format.hpp>
+#include <matplot/matplot.h>
 
 #define GRAVITY 9.8
 #define ICE_DENSITY 910
@@ -245,25 +269,25 @@ FloatType x0 = 0.0;  // Left end
 FloatType x1 = 100.0;  // Right end
 FloatType L = x1 - x0;  // Length of the domain
 FloatType H = 1.0;  // Mean height of the domain
-FloatType z0 = 0.5;  // Amplitude of surface undulation
+FloatType z0 = 0.1;  // Amplitude of surface undulation
 
-FloatType A = 100.0  // Ice softness parameter
+FloatType A = 100.0;  // Ice softness parameter
 FloatType n_i = 3.0;  // Glen exponent
 FloatType eps_reg_2 = 1e-10;  // Regularization parameter
-int fssa_version = FSSA_NONE  // No FSSA stabilization
-FloatType fssa_param = 0  // Stabilization parameter in FSSA 
+int fssa_version = FSSA_NONE;  // No FSSA stabilization
+FloatType fssa_param = 0;  // Stabilization parameter in FSSA 
 
 int nx = 50;  // Number of elements in x-direction
 int nz = 5;  // Number of elements in z-direction
-int nt = 10;  // Number of time steps
-FloatType dt = 1.0;  // Time step size
+int nt = 100;  // Number of time steps
+FloatType dt = 35.0;  // Time step size
 int deg_u = 2;  // Polynomial degree for velocity field
 int deg_p = 1;  // Polynomial degree for pressure field
 int deg_h = 1;  // Polynomial degree for height field
 int gauss_precision = 5;  // Number of Gauss points in each direction per element
 int max_iter = 100;  // Maximum number of iterations for solver
-FloatType stol = 1e-10;  // Convergence tolerance for solver
-int cell_type = MESH2D::TRIANGLE_LEFT; 
+FloatType stol = 1e-6;  // Convergence tolerance for solver
+int cell_type = MESH2D::TRIANGLE_LEFT;  // 2D mesh cell type
 
 FloatType zb_expr(FloatType x)
 {
@@ -272,7 +296,7 @@ FloatType zb_expr(FloatType x)
 
 FloatType zs_expr(FloatType x)
 {
-    return H + z0*SIN_FUNC(PI_CONST*x/L);
+    return H + z0*COS_FUNC(PI_CONST*x/L);
 }
 
 FloatType force_x(FloatType x, FloatType z) {
@@ -280,7 +304,7 @@ FloatType force_x(FloatType x, FloatType z) {
 }
 
 FloatType force_z(FloatType x, FloatType z) {
-    return 1e-3*ICE_DENSITY*GRAVITY;
+    return -1e-3*ICE_DENSITY*GRAVITY;
 }
 
 int main(int argc, char *argv[])
@@ -302,6 +326,9 @@ int main(int argc, char *argv[])
     // Extract surface coordinates
     Eigen::MatrixX<FloatType> spmat_u = u_mesh_2d.pmat(sdofs_u, Eigen::all);
     Eigen::MatrixX<FloatType> spmat_h = u_mesh_2d.pmat(sdofs_h, Eigen::all);
+    Eigen::VectorX<FloatType> xs_vec = spmat_h(Eigen::all, 0);
+    Eigen::VectorX<FloatType> zs_vec = spmat_h(Eigen::all, 1);
+
     // Project mesh to z=0
     spmat_u(Eigen::all, 1).array() = 0.0;
     spmat_h(Eigen::all, 1).array() = 0.0;
@@ -326,27 +353,68 @@ int main(int argc, char *argv[])
     FEMFunction1D h0_func = FEMFunction1D(h_mesh_1d);
     FEMFunction1D ac_func = FEMFunction1D(h_mesh_1d);
 
+    // For L2 norm calculation
+    h0_func.assemble_mass_matrix();
+
     // Initialize the pStokes and Free Surface Problem
     pStokesProblem psp(u_mesh_2d, p_mesh_2d);
     FreeSurfaceProblem fsp(h_mesh_1d, u_mesh_1d);
 
+    // Plot initial surface profile
+    matplot::plot(xs_vec, zs_vec)->line_width(2.0);
+    matplot::hold(true);
     for (int k = 0; k < nt; k++) {
         psp.solve_nonlinear_system_picard(
             A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
             ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
         );
+        // Clear lhs matrix and rhs vector.
+        psp.reset_system();
 
-        // To be continued...
-        // Requires installing matplot++ and gnuplot
+        // Extract velocity field solutions
+        Eigen::VectorX<FloatType> ux_vec = psp.velocity_x().vals;
+        Eigen::VectorX<FloatType> uz_vec = psp.velocity_z().vals;
+        // Set free surface velocity
+        ux_func.vals = ux_vec(sdofs_u);
+        uz_func.vals = uz_vec(sdofs_u);
+        // Set initial height
+        h0_func.vals = zs_vec;
+
+        // Print surface energy and domain area
+        std::cout << boost::format{"||E|| = %.16f"} %h0_func.L2_norm() << std::endl;
+        std::cout << boost::format{"A = %.16f"} %u_mesh_2d.area() << std::endl;
+
+        // Solve the free surface problem using explicit time stepping
+        fsp.assemble_lhs_explicit(gauss_precision);
+        fsp.commit_lhs();
+        fsp.assemble_rhs_explicit(
+            h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+        );
+        fsp.solve_linear_system();
+        // Clear lhs matrix and rhs vector
+        fsp.reset_system();
+
+        // Update surface elevation
+        zs_vec = fsp.zs_vec;
+
+        // Update mesh with new surface elevation
+        u_mesh_2d.extrude_z(zs_vec);
+        p_mesh_2d.extrude_z(zs_vec);
+
     }
 
+    // Plot final surface
+    matplot::plot(xs_vec, zs_vec)->line_width(2.0);
+    matplot::show();
+
     return 0;
+}
 }
 ```
 
 ## Python
 
-Running this demo also requires [Matplotlib](https://matplotlib.org), which on debian-based system can be installed with:
+This demo requires [Matplotlib](https://matplotlib.org):
 
 ```# apt install python3-matplotlib```
 
@@ -355,9 +423,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import biceps as bp
 
-GRAVITY = 9.8  # Gravitational acceleration (m/s^2)
-ICE_DENSITY = 910  # Ice density (kg/m^3)
-FORCE_Z = -1e-3*ICE_DENSITY*GRAVITY  # Force in z direction converted to units in MPa, yr and km
+GRAVITY = 9.8
+ICE_DENSITY = 910
+
 
 # Define the expressions for the bottom and surface elevations
 def zb_expr(x): return 0.0  # Flat bottom surface
@@ -366,36 +434,35 @@ def zs_expr(x): return H + z0*np.cos(np.pi*x/L)  # Undulating surface elevation
 
 # Define external force functions
 def force_x(x, z): return 0.0  # No horizontal force
-def force_z(x, z): return FORCE_Z  # Gravity-driven force in the z-direction
+def force_z(x, z): return -1e-3*GRAVITY*ICE_DENSITY  # Gravity force in the z-direction
 
 
 # Define domain and grid parameters
-x0 = 0.0  # Left end of domain (km)
-x1 = 100.0  # Right end of domain (km)
+x0 = 0.0  # Left end
+x1 = 100.0  # Right end
 L = x1 - x0  # Length of the domain
-H = 1  # Mean height of the domain (km)
-z0 = 0.5  # Amplitude of surface undulation (km)
+H = 1  # Mean height of the domain
+z0 = 0.1  # Amplitude of surface undulation
 
-A = 100.0  # Rate factor
-n_i = 3.0  # Glen exponent
-fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
-fssa_param = 0  # Stabilization parameter for FSSA
+A = 100.0  # Ice softness parameter
+n_i = 3.0  # glen exponent
 eps_reg_2 = 1e-10  # Regularization parameter
+fssa_version = bp.FSSA_VERSION.FSSA_NONE  # No FSSA stabilization
+fssa_param = 0  # Stabilization parameter in FSSA
 
 nx = 50  # Number of elements in x-direction
 nz = 5  # Number of elements in z-direction
-nt = 10  # Number of time steps
-dt = 1  # Time step size
+nt = 100  # Number of time steps
+dt = 35  # Time step size
 
 deg_u = 2  # Polynomial degree for velocity field
 deg_p = 1  # Polynomial degree for pressure field
 deg_h = 1  # Polynomial degree for height field
-gp = 5  # Number of Gauss points per element
+gauss_precision = 5  # Number of Gauss points in each direction per element
 
 max_iter = 100  # Maximum number of iterations for solver
-stol = 1e-10  # Convergence tolerance for solver
-
-cell_type = bp.CELL_TYPE_2D.TRIANGLE_LEFT  # Type of triangular element
+stol = 1e-6  # Convergence tolerance for solver
+cell_type = bp.CELL_TYPE_2D.TRIANGLE_LEFT  # 2D mesh cell type
 
 # Create structured meshes for velocity, pressure, and height fields
 u_mesh_2d = bp.StructuredMesh(nx, nz, deg_u, cell_type)
@@ -416,6 +483,7 @@ spmat_u = u_mesh_2d.pmat[sdofs_u, :].copy()
 spmat_h = u_mesh_2d.pmat[sdofs_h, :].copy()
 xs_vec = spmat_h[:, 0].copy()
 zs_vec = spmat_h[:, 1].copy()
+# Project mesh to z=0
 spmat_u[:, 1] = 0
 spmat_h[:, 1] = 0
 
@@ -423,7 +491,7 @@ spmat_h[:, 1] = 0
 u_mesh_1d = bp.IntervalMesh(spmat_u, deg_u)
 h_mesh_1d = bp.IntervalMesh(spmat_h, deg_h)
 
-# Apply boundary conditions
+# Define ids for Dirichlet boundary condition
 ux_boundary_id = (
     bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
     bp.DOMAIN_IDS_2D.WEST_ID |
@@ -433,13 +501,16 @@ ux_boundary_id = (
 )
 uz_boundary_id = bp.DOMAIN_IDS_2D.BED_ID
 
-# Initialize FEM functions for velocity and height
+# Initialize FEM functions for height, velocity, and accumulation
 ux_func = bp.FEMFunction1D(u_mesh_1d)
 uz_func = bp.FEMFunction1D(u_mesh_1d)
 h0_func = bp.FEMFunction1D(h_mesh_1d)
 ac_func = bp.FEMFunction1D(h_mesh_1d)
 
-# Initialize Stokes and Free Surface Problems
+# For L2 norm calculation
+h0_func.assemble_mass_matrix()
+
+# Initialize the pStokes and Free Surface Problem
 psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
 
@@ -451,36 +522,42 @@ for k in range(nt):
     # Assemble and solve the nonlinear pStokes problem
     psp.solve_nonlinear_system_picard(
         A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
-        ux_boundary_id, uz_boundary_id, max_iter, stol, gp
+        ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
     )
+    # Clear lhs matrix and rhs vector
+    psp.reset_system()
 
     # Extract velocity field solutions
     ux_vec = psp.velocity_x().vals
     uz_vec = psp.velocity_z().vals
+    # Set free surface velocity
     ux_func.vals = ux_vec[sdofs_u]
     uz_func.vals = uz_vec[sdofs_u]
-    h0_func.vals = zs_vec  # Update initial height values
+    # Set initial height
+    h0_func.vals = zs_vec.copy()
 
     # Print surface energy and domain area
-    print(f"||E|| = {h0_func.L2_norm()}")
-    print(f"A = {u_mesh_2d.area()}")
+    print(f"||E|| = {h0_func.L2_norm(): .16f}")
+    print(f"A = {u_mesh_2d.area(): .16f}")
 
     # Solve the free surface problem using explicit time stepping
-    fsp.assemble_lhs_explicit(gp)
+    fsp.assemble_lhs_explicit(gauss_precision)
     fsp.commit_lhs()
-    fsp.assemble_rhs_explicit(h0_func, ux_func, uz_func, ac_func, dt, gp)
+    fsp.assemble_rhs_explicit(
+        h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+    )
     fsp.solve_linear_system()
+    # Clear lhs matrix and rhs vector
+    fsp.reset_system()
 
     # Update surface elevation
-    zs_vec = fsp.zs_vec
+    zs_vec = fsp.zs_vec.copy()
 
     # Update mesh with new surface elevation
     u_mesh_2d.extrude_z(zs_vec)
     p_mesh_2d.extrude_z(zs_vec)
 
-    # Plot updated surface profile
-    plt.plot(xs_vec, zs_vec)
-
-# Show final plot
+# Plot final surface
+plt.plot(xs_vec, zs_vec)
 plt.show()
 ```

@@ -117,9 +117,15 @@ public:
     Eigen::MatrixX<FloatType> extract_dof_subvec(int domain_id);
 
     /**
-     * @brief Assembles the mass matrix for the FEM function.
+     * @brief Assembles the mass matrix for the FEM function, used for L2 norm calculation
      */
     void assemble_mass_matrix();
+
+    /**
+     * @brief Set preassembled mass matrix for the FEM function, used for L2 norm calculation
+     * @param[in] M The mass matrix in sparse format
+     */
+    void set_mass_matrix(Eigen::SparseMatrix<FloatType> &M);
 
     /**
      * @brief Computes the derivative of the function in the x-direction (interpolated).

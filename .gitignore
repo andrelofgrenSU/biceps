@@ -33,9 +33,10 @@
 *.exe
 *.out
 *.app
+bin/
 
 # CMake build files
-.build
+.build/
 
 # Compile flags
 compile_commands.json

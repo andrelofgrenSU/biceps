@@ -73,6 +73,12 @@ public:
     void assemble_mass_matrix();
 
     /**
+     * @brief Set preassembled mass matrix for the FEM function, used for L2 norm calculation
+     * @param[in] M The mass matrix in sparse format
+     */
+    void set_mass_matrix(Eigen::SparseMatrix<FloatType> &M);
+
+    /**
      * @brief Integrates the function over a specified number of Gauss points.
      * 
      * @param[in] gp The number of Gauss points for integration.

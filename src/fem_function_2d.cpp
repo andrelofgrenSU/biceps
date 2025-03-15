@@ -30,6 +30,12 @@ void FEMFunction2D::assemble_mass_matrix()
     mass_mat_is_assembled = true;
 }
 
+void FEMFunction2D::set_mass_matrix(Eigen::SparseMatrix<FloatType> &M_sp)
+{
+    M = M_sp;
+    mass_mat_is_assembled = true;
+}
+
 Eigen::SparseMatrix<FloatType> FEMFunction2D::mass_matrix() {
     return M;
 }
