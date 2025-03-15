@@ -306,11 +306,13 @@ FloatType zs_expr(FloatType x)
     return H + z0*COS_FUNC(PI_CONST*x/L);
 }
 
-FloatType force_x(FloatType x, FloatType z) {
+FloatType force_x(FloatType x, FloatType z)
+{
     return 0.0;
 }
 
-FloatType force_z(FloatType x, FloatType z) {
+FloatType force_z(FloatType x, FloatType z)
+{
     return -1e-3*ICE_DENSITY*GRAVITY;
 }
 
