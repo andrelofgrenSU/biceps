@@ -11,7 +11,7 @@ This project has rather few dependencies; a minimal C++ installation requires on
 ```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
 
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release
+$ cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
 ### Python
@@ -30,7 +30,7 @@ Then to install run:
 
 To build Biceps with Python enabled, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 ```
 
 ### Documentation
@@ -41,7 +41,7 @@ Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphv
 
 To build Biceps documentation, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
 ```
 
 ### Unit testing
@@ -51,7 +51,7 @@ Unit testing is performed using the boost unit test module, which can be install
 
 To build Biceps with testing enabled, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
+$ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 ```
 
 
@@ -427,6 +427,7 @@ This demo requires [Matplotlib](https://matplotlib.org):
 ```# apt install python3-matplotlib```
 
 To run:
+
 ```$ python biceps_demo.py```
 
 ```python
