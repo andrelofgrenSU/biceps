@@ -121,7 +121,7 @@ for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. Here $\mathcal
 ### Nonlinear iterations
 To resolve the nonlinearity a Picard iteration scheme is employed where $2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \approx 2 \eta(\mathbf{u}_0) \dot{\varepsilon}(\mathbf{u})$, with $\mathbf{u}_0$ being some known approximation of $\mathbf{u}$. The following problem is then solved to obtain an improved guess $\mathbf{u}^{m+1}$ from the known guess $\mathbf{u}^m$:
 
-Find $\mathbf{u}^{m+1} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
+Find $\mathbf{u}^{m+1} \in \mathcal{U}$ and $p^{m+1} \in \mathcal{Q}$, such that
 
 ```math
     \left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}^m) \dot{\varepsilon}(\mathbf{u}^{m+1}) \right )_{\Omega} - (q, \nabla \cdot \mathbf{u}^{m+1})_{\Omega} - (\nabla \cdot \mathbf{v}, p^{m+1})_{\Omega} = (\mathbf{v}, \mathbf{f})_{\Omega}
@@ -219,7 +219,7 @@ The boundary velocity $\mathbf{u}_b = \mathbf{u} + a_s \mathbf{e}_z$ is simply t
 Find $\mathbf{u} \in \mathcal{U}$ and $p \in \mathcal{Q}$, such that
 
 ```math
-\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^k - \theta \Delta t (\mathbf{v}, (\mathbf{u} \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s} = (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (a_s \mathbf{e}_z \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
+\left (\dot{\varepsilon}(\mathbf{v}), 2 \eta(\mathbf{u}) \dot{\varepsilon}(\mathbf{u}) \right )_{\Omega^k} - (\nabla \cdot \mathbf{v}, p)_{\Omega^k} - (q, \nabla \cdot \mathbf{u})_{\Omega^k} - \theta \Delta t (\mathbf{v}, (\mathbf{u} \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_k^s} = (\mathbf{v}, \mathbf{f})_{\Omega^k} + \theta \Delta t (\mathbf{v}, (a_s \mathbf{e}_z \cdot \hat{\mathbf{n}}) \mathbf{f} )_{\Gamma_s^k}
 ```
 
 for all $\mathbf{v} \in \mathcal{V}$ and all $q \in \mathcal{Q}$. 
@@ -242,7 +242,7 @@ $ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DBUILD_SH
 ```
 if successful, build it (using all available cores for fast compilation)
 ```sh
-$ make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq)
+$ make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq | wc -l)
 ```
 and if compilation succeeded, finally install it
 ```
