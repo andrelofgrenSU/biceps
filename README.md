@@ -8,11 +8,11 @@ In the following instructions, commands requiring elevated privileges are prepen
 ### C++
 This project has rather few dependencies; a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
-```
+```sh
 # apt install gcc build-essentials cmake libboost-dev libeigen3-dev
 ```
 
-```e
+```sh
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -20,24 +20,24 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release
 
 Building the python interface requires [EigenPy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). [EigenPy](https://github.com/stack-of-tasks/eigenpy) in turn depends on [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/):
 
-```
+```sh
 # apt install python3-numpy python3-scipy libboost-python-dev
 ```
 
 After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
-```
+```sh
 $ tar -xvzf v3.10.3.tar.gz && cd eigenpy-v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release
 ```
 
 Then to install run:
 
-```
+```sh
 # make install
 ```
 
 To build Biceps with Python enabled, configure CMake:
-```
+```sh
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 ```
 
@@ -45,24 +45,24 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/):
 
-```
+```sh
 # apt install doxygen graphviz
 ```
 
 To build Biceps documentation, configure CMake:
-```
+```sh
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
 ```
 
 ### Unit testing
 Unit testing is performed using the boost unit test module, which can be installed by running:
 
-```
+```sh
 # apt install liboost-test-dev
 ```
 
 To build Biceps with testing enabled, configure CMake:
-```
+```sh
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 ```
 
@@ -71,18 +71,30 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 
 The steps for installing this repository is:
 
-1. Clone repository: 
-```
+1. Clone repository:
+```sh
 git clone https://github.com/andrelofgrenSU/biceps.git
 ```
 
-2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DENABLE_PYTHON=ON -DENABLE_TESTS=ON  -DENABLE_DOCS=ON -DUSE_LONG_DOUBLE=OFF```
+2. Compile:
+```sh
+$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DENABLE_PYTHON=ON -DENABLE_TESTS=ON  -DENABLE_DOCS=ON -DUSE_LONG_DOUBLE=OFF
+```
 
-3. Build documentation (optional): ```$ make docs```
+3. Build documentation (optional):
+```sh
+$ make docs
+```
 
-4. Run tests (optional): ```$ make test```
+4. Run tests (optional):
+```sh
+$ make test
+```
 
-5. Install: ```# make install```
+5. Install:
+```sh
+# make install
+```
 
 # Theory
 
@@ -249,31 +261,31 @@ The two main modules in this project are the pStokesProblem and the FreeSurfaceP
 
 Running this demo requires [Matplot++](https://matplotlib.org), a C++ plotting library with an [API](https://en.wikipedia.org/wiki/API) similar to the popular Python library [Matplotlib](https://matplotlib.org/). A tarball for Matplot++ is available from [here](https://github.com/alandefreitas/matplotplusplus/archive/refs/tags/v1.2.2.tar.gz). To install it, first extract it
 
-```
+```sh
 $ tar -xvzf v1.2.2.tar.gz && cd matplotplusplus-1.2.2
 ```
 then configure
-```
+```sh
 $ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=ON -DMATPLOTPP_BUILD_EXAMPLES=OFF -DMATPLOTPP_BUILD_TESTS=OFF
 ```
 if successful, build it (using all available cores for fast compilation)
-```
+```sh
 $ make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq | wc -l)
 ```
 and if compilation succeeded, finally install it
-```
+```sh
 # make install 
 ```
 Lastly, install the default [gnuplot](https://gnuplot.info) backend
-```
+```sh
 # apt install gnuplot
 ```
 To run the demo below first compile and install it:
-```
+```sh
 $ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release && make && make install && cd ..
 ```
 And then run the executable:
-```
+```sh
 $ bin/biceps_demo
 ```
 
@@ -440,11 +452,15 @@ int main(int argc, char *argv[])
 
 This demo requires [Matplotlib](https://matplotlib.org):
 
-```# apt install python3-matplotlib```
+```sh
+# apt install python3-matplotlibi
+```
 
 To run:
 
-```$ python biceps_demo.py```
+```sh
+$ python biceps_demo.py
+```
 
 ```python
 import numpy as np
@@ -594,7 +610,7 @@ plt.show()
 
 This demo requires Julia packages [PyCall](https://github.com/JuliaPy/PyCall.jl) and [Plots](https://docs.juliaplots.org/stable/):
 
-```jl
+```julia
 import Pkg
 Pkg.add("PyCall")
 Pkg.add("Plots")
@@ -602,9 +618,11 @@ Pkg.add("Plots")
 
 To run:
 
-```$ julia biceps_demo.jl```
+```sh
+$ julia biceps_demo.jl
+```
 
-```jl
+```julia
 using PyCall
 using Plots
 import Printf.@printf
