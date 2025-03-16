@@ -111,49 +111,51 @@ h0_func.assemble_mass_matrix()
 psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
 
-# Plot initial surface profile
-plt.plot(xs_vec, zs_vec)
+import IPython; IPython.embed()
 
-# Time-stepping loop
-for k in range(nt):
-    # Assemble and solve the nonlinear pStokes problem
-    psp.solve_nonlinear_system_picard(
-        A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
-        ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
-    )
-    # Clear lhs matrix and rhs vector
-    psp.reset_system()
-
-    # Extract velocity field solutions
-    ux_vec = psp.velocity_x().vals
-    uz_vec = psp.velocity_z().vals
-    # Set free surface velocity
-    ux_func.vals = ux_vec[sdofs_u]
-    uz_func.vals = uz_vec[sdofs_u]
-    # Set initial height
-    h0_func.vals = zs_vec.copy()
-
-    # Print surface energy and domain area
-    print(f"||E|| = {h0_func.L2_norm(): .16f}")
-    print(f"A = {u_mesh_2d.area(): .16f}")
-
-    # Solve the free surface problem using explicit time stepping
-    fsp.assemble_lhs_explicit(gauss_precision)
-    fsp.commit_lhs()
-    fsp.assemble_rhs_explicit(
-        h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
-    )
-    fsp.solve_linear_system()
-    # Clear lhs matrix and rhs vector
-    fsp.reset_system()
-
-    # Update surface elevation
-    zs_vec = fsp.zs_vec.copy()
-
-    # Update mesh with new surface elevation
-    u_mesh_2d.extrude_z(zs_vec)
-    p_mesh_2d.extrude_z(zs_vec)
-
-# Plot final surface
-plt.plot(xs_vec, zs_vec)
-plt.show()
+# # Plot initial surface profile
+# plt.plot(xs_vec, zs_vec)
+# 
+# # Time-stepping loop
+# for k in range(nt):
+#     # Assemble and solve the nonlinear pStokes problem
+#     psp.solve_nonlinear_system_picard(
+#         A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
+#         ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
+#     )
+#     # Clear lhs matrix and rhs vector
+#     psp.reset_system()
+# 
+#     # Extract velocity field solutions
+#     ux_vec = psp.velocity_x().vals
+#     uz_vec = psp.velocity_z().vals
+#     # Set free surface velocity
+#     ux_func.vals = ux_vec[sdofs_u]
+#     uz_func.vals = uz_vec[sdofs_u]
+#     # Set initial height
+#     h0_func.vals = zs_vec.copy()
+# 
+#     # Print surface energy and domain area
+#     print(f"||E|| = {h0_func.L2_norm(): .16f}")
+#     print(f"A = {u_mesh_2d.area(): .16f}")
+# 
+#     # Solve the free surface problem using explicit time stepping
+#     fsp.assemble_lhs_explicit(gauss_precision)
+#     fsp.commit_lhs()
+#     fsp.assemble_rhs_explicit(
+#         h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+#     )
+#     fsp.solve_linear_system()
+#     # Clear lhs matrix and rhs vector
+#     fsp.reset_system()
+# 
+#     # Update surface elevation
+#     zs_vec = fsp.zs_vec.copy()
+# 
+#     # Update mesh with new surface elevation
+#     u_mesh_2d.extrude_z(zs_vec)
+#     p_mesh_2d.extrude_z(zs_vec)
+# 
+# # Plot final surface
+# plt.plot(xs_vec, zs_vec)
+# plt.show()
