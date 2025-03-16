@@ -30,7 +30,7 @@ Then to install run:
 
 To build Biceps with Python enabled, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DWITH_PYTHON=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 ```
 
 ### Documentation
@@ -41,7 +41,7 @@ Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphv
 
 To build Biceps documentation, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
 ```
 
 ### Unit testing
@@ -51,7 +51,7 @@ Unit testing is performed using the boost unit test module, which can be install
 
 To build Biceps with testing enabled, configure CMake:
 ```cmake
-cmake .. -DCMAKE_BUILD_TYPE=Release -DTESTS=ON
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 ```
 
 
