@@ -8,9 +8,11 @@ In the following instructions, commands requiring elevated privileges are prepen
 ### C++
 This project has rather few dependencies; a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
-```# apt install gcc build-essentials cmake libboost-dev libeigen3-dev```
+```
+# apt install gcc build-essentials cmake libboost-dev libeigen3-dev
+```
 
-```cmake
+```e
 $ cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
@@ -18,18 +20,24 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release
 
 Building the python interface requires [EigenPy](https://github.com/stack-of-tasks/eigenpy) and the python module of [boost](https://www.boost.org/). [EigenPy](https://github.com/stack-of-tasks/eigenpy) in turn depends on [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/):
 
-```# apt install python3-numpy python3-scipy libboost-python-dev```
+```
+# apt install python3-numpy python3-scipy libboost-python-dev
+```
 
 After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
-```$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release```
+```
+$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release
+```
 
 Then to install run:
 
-```# make install```
+```
+# make install
+```
 
 To build Biceps with Python enabled, configure CMake:
-```cmake
+```
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 ```
 
@@ -37,20 +45,24 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 
 Generating documentation requires [Doxygen](https://www.doxygen.nl/) and [Graphviz](https://graphviz.org/):
 
-```# apt install doxygen graphviz```
+```
+# apt install doxygen graphviz
+```
 
 To build Biceps documentation, configure CMake:
-```cmake
+```
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
 ```
 
 ### Unit testing
 Unit testing is performed using the boost unit test module, which can be installed by running:
 
-```# apt install liboost-test-dev```
+```
+# apt install liboost-test-dev
+```
 
 To build Biceps with testing enabled, configure CMake:
-```cmake
+```
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 ```
 
@@ -241,7 +253,7 @@ then configure
 $ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DBUILD_SHARED_LIBS=ON -DMATPLOTPP_BUILD_EXAMPLES=OFF -DMATPLOTPP_BUILD_TESTS=OFF
 ```
 if successful, build it (using all available cores for fast compilation)
-```sh
+```
 $ make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq | wc -l)
 ```
 and if compilation succeeded, finally install it
