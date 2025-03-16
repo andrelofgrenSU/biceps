@@ -49,7 +49,7 @@ Unit testing is performed using the unittest module of boost, which can be insta
 
 ```# apt install liboost-test-dev```
 
-To build Biceps with Python enabled, configure CMake:
+To build Biceps with testing enabled, configure CMake:
 ```cmake
 cmake .. -DCMAKE_BUILD_TYPE=Release -DTESTS=ON
 ```
