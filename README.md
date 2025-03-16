@@ -45,7 +45,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_DOCS=ON
 ```
 
 ### Unit testing
-Unit testing is performed using the unittest module of boost, which can be installed by running:
+Unit testing is performed using the boost unit test module, which can be installed by running:
 
 ```# apt install liboost-test-dev```
 
@@ -62,9 +62,9 @@ The steps for installing this repository is:
 
 2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DTESTS=ON  -DBUILD_DOCS=ON -DUSE_LONG_DOUBLE=OFF```
 
-3. Build documentation (optional): ```# make doc ```
+3. Build documentation (optional): ```$ make docs```
 
-4. Run tests (optional): ```# make test mesh && make test ```
+4. Run tests (optional): ```$ make test```
 
 5. Install: ```# make install```
 
