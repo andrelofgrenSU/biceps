@@ -73,7 +73,7 @@ The steps for installing this repository is:
 
 1. Clone repository:
 ```console
-git clone https://github.com/andrelofgrenSU/biceps.git
+$ git clone https://github.com/andrelofgrenSU/biceps.git
 ```
 
 2. Compile:
