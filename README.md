@@ -70,9 +70,13 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTS=ON
 ### Example build
 
 The steps for installing this repository is:
-1. Clone repository: ```git clone https://github.com/andrelofgrenSU/biceps.git```
 
-2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_PYTHON=ON -DTESTS=ON  -DBUILD_DOCS=ON -DUSE_LONG_DOUBLE=OFF```
+1. Clone repository: 
+```
+git clone https://github.com/andrelofgrenSU/biceps.git
+```
+
+2. Compile: ```$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DENABLE_PYTHON=ON -DENABLE_TESTS=ON  -DENABLE_DOCS=ON -DUSE_LONG_DOUBLE=OFF```
 
 3. Build documentation (optional): ```$ make docs```
 
