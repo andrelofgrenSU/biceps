@@ -31,8 +31,15 @@ static inline FloatType glen_flow_viscosity(
     );
 }
 
-pStokesProblem::pStokesProblem(StructuredMesh &u_mesh, StructuredMesh &p_mesh) : 
-    u_mesh(u_mesh), p_mesh(p_mesh), logger(INFO, std::cout)
+pStokesProblem::pStokesProblem(
+    FloatType rate_factor, FloatType glen_exponent, FloatType eps_reg_2,
+    std::function<FloatType(FloatType, FloatType)> force_x,
+    std::function<FloatType(FloatType, FloatType)> force_z,
+    StructuredMesh &u_mesh, StructuredMesh &p_mesh
+) :
+    rate_factor(rate_factor), glen_exponent(glen_exponent), eps_reg_2(eps_reg_2),
+    force_x(force_x), force_z(force_z), u_mesh(u_mesh), p_mesh(p_mesh),
+    logger(INFO, std::cout)
 {
     // Set the number of dofs for velocity and pressure fields
     nv_dofs = u_mesh.nof_dofs();  // Number of velocity dofs (both horizontal and vertical)
@@ -88,9 +95,8 @@ pStokesProblem::pStokesProblem(StructuredMesh &u_mesh, StructuredMesh &p_mesh) :
     lhs_coeffs.reserve(nnz_per_dof * n_dofs);  // Reserve memory for the left-hand side matrix coefficients
 }
 
-void pStokesProblem::assemble_stress_block(
-    FloatType A, FloatType n_i, FloatType eps_reg_2, int gauss_precision
-) {
+void pStokesProblem::assemble_stress_block()
+{
     // Initialize matrices and vectors for computation
     Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
         phi_rs, dphi_rs, dphi_xz;
@@ -99,7 +105,7 @@ void pStokesProblem::assemble_stress_block(
 
     // Perform Gauss-Legendre quadrature to get quadrature points and weights
     FEM2D::gauss_legendre_quadrature(
-        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+        gp_stress, u_mesh.cell_type(), qpoints_rs, qweights
     );
 
     // Generate Lagrange basis functions for the quadrature points
@@ -171,7 +177,7 @@ void pStokesProblem::assemble_stress_block(
 
             // Glen's flow law rheology to compute viscosity
             FloatType eta = glen_flow_viscosity(
-                A, n_i, eps_reg_2, eff_strain_rate_2
+                rate_factor, glen_exponent, eps_reg_2, eff_strain_rate_2
             );
 
             // Multiply by the determinant of the Jacobian and quadrature weight
@@ -228,7 +234,7 @@ void pStokesProblem::assemble_stress_block(
     nof_pushed_elements = lhs_coeffs.size();
 }
 
-void pStokesProblem::assemble_incomp_block(int gauss_precision)
+void pStokesProblem::assemble_incomp_block()
 {
     // Declare matrices and vectors for node coordinates, quadrature points, and derivatives
     Eigen::MatrixX<FloatType> node_coords_u, node_coords_p, qpoints_rs, qpoints_xz,
@@ -238,7 +244,7 @@ void pStokesProblem::assemble_incomp_block(int gauss_precision)
 
     // Perform Gauss-Legendre quadrature to calculate quadrature points and weights
     FEM2D::gauss_legendre_quadrature(
-        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+        gp_incomp, u_mesh.cell_type(), qpoints_rs, qweights
     );
 
     // Generate Lagrange basis functions and their derivatives for pressure (p) element
@@ -350,21 +356,14 @@ void pStokesProblem::assemble_incomp_block(int gauss_precision)
     nof_pushed_elements = lhs_coeffs.size();
 }
 
-void pStokesProblem::assemble_fssa_vertical_block(
-    FloatType stab_param,
-    std::function<double(double, double)> force_x,
-    std::function<double(double, double)> force_z,
-    int gauss_precision
-) {
+void pStokesProblem::assemble_fssa_vertical_block() {
     // Declare matrices and vectors for quadrature points, basis functions, and other required values
     Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
     Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
     Eigen::VectorXi edge_vi;
 
     // Retrieve quadrature points and weights
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_fssa_lhs, qpoints_r, qweights);
 
     // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
     FEM1D::lagrange_basis(
@@ -415,8 +414,8 @@ void pStokesProblem::assemble_fssa_vertical_block(
             // Loop over edge dofs and compute the matrix contributions
             for (int i = 0; i < u_mesh.dofs_per_edge(); i++) {
                 for (int j = 0; j < u_mesh.dofs_per_edge(); j++) {
-                    A_xz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx;
-                    A_zz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz;
+                    A_xz(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx;
+                    A_zz(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz;
                 }
             }
         }
@@ -446,20 +445,14 @@ void pStokesProblem::assemble_fssa_vertical_block(
     nof_pushed_elements = lhs_coeffs.size();
 }
 
-void pStokesProblem::assemble_fssa_normal_block(
-    FloatType stab_param,
-    std::function<double(double, double)> force_z,
-    int gauss_precision
-) {
+void pStokesProblem::assemble_fssa_normal_block() {
     // Declare matrices and vectors for quadrature points, basis functions, and other required values
     Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
     Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
     Eigen::VectorXi edge_vi;
 
     // Retrieve quadrature points and weights using Gauss-Legendre quadrature
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_fssa_lhs, qpoints_r, qweights);
 
     // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
     FEM1D::lagrange_basis(
@@ -516,10 +509,10 @@ void pStokesProblem::assemble_fssa_normal_block(
             // Loop over edge dofs and compute the matrix contributions
             for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
                 for (int j = 0; j < u_mesh.dofs_per_edge(); ++j) {
-                    A_xx(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nx;
-                    A_xz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nz;
-                    A_zx(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nx;
-                    A_zz(i, j) -= stab_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nz;
+                    A_xx(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nx;
+                    A_xz(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nx * nz;
+                    A_zx(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nx;
+                    A_zz(i, j) -= fssa_param * phi_r(q, i) * phi_r(q, j) * fz * dFxW * nz * nz;
                 }
             }
         }
@@ -561,27 +554,17 @@ void pStokesProblem::assemble_fssa_normal_block(
     nof_pushed_elements = lhs_coeffs.size();
 }
 
-void pStokesProblem::assemble_fssa_vertical_rhs(
-    FloatType stab_param,
-    std::function<double(double, double)> force_x,
-    std::function<double(double, double)> force_z,
-    std::function<double(double, double)> accum,
-    int gauss_precision
-) {
+void pStokesProblem::assemble_fssa_vertical_rhs() {
     // Declare matrices and vectors for quadrature points, basis functions, and other required values
     Eigen::MatrixX<FloatType> node_coords_u, qpoints_x, phi_r, dphi_r, dphi_x;
     Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
     Eigen::VectorXi edge_vi;
 
     // Retrieve quadrature points and weights using Gauss-Legendre quadrature
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_fssa_rhs, qpoints_r, qweights);
 
     // Calculate Lagrange basis functions and their derivatives for the velocity element (u_mesh)
-    FEM1D::lagrange_basis(
-        u_mesh.degree(), qpoints_r, phi_r, dphi_r
-    );
+    FEM1D::lagrange_basis(u_mesh.degree(), qpoints_r, phi_r, dphi_r);
 
     // Initialize matrices for storing quadrature points in the x-direction, determinant of the Jacobian, and derivative of basis functions
     qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
@@ -613,25 +596,22 @@ void pStokesProblem::assemble_fssa_vertical_rhs(
             // Compute the force and accumulation values at the quadrature point
             FloatType fx = force_x(qpoints_x(q, 0), qpoints_x(q, 1));
             FloatType fz = force_z(qpoints_x(q, 0), qpoints_x(q, 1));
-            FloatType ac = accum(qpoints_x(q, 0), qpoints_x(q, 1));
+            FloatType ac = fssa_accum(qpoints_x(q, 0), qpoints_x(q, 1));
 
             // Compute the weighted Jacobian determinant (detJ * weight)
             FloatType dFxW = ABS_FUNC(detJ_r(q)) * qweights(q);
 
             // Loop over edge dofs and update the right-hand side vector (rhs_vec) with the contributions
             for (int i = 0; i < u_mesh.dofs_per_edge(); ++i) {
-                rhs_vec(ux_v2d(edge_vi(i))) += stab_param * phi_r(q, i) * ac * fx * dFxW * nz;
-                rhs_vec(uz_v2d(edge_vi(i))) += stab_param * phi_r(q, i) * ac * fz * dFxW * nz;
+                rhs_vec(ux_v2d(edge_vi(i))) += fssa_param * phi_r(q, i) * ac * fx * dFxW * nz;
+                rhs_vec(uz_v2d(edge_vi(i))) += fssa_param * phi_r(q, i) * ac * fz * dFxW * nz;
             }
         }
     }
 }
 
-void pStokesProblem::assemble_rhs_vec(
-    std::function<FloatType(FloatType, FloatType)> force_x,
-    std::function<FloatType(FloatType, FloatType)> force_z,
-    int gauss_precision
-) {
+void pStokesProblem::assemble_rhs_vec()
+{
     // Declare matrices and vectors for quadrature points, basis functions, and other required values
     Eigen::MatrixX<FloatType> node_coords_u, qpoints_rs, qpoints_xz,
         phi_rs, dphi_rs, dphi_xz;
@@ -640,7 +620,7 @@ void pStokesProblem::assemble_rhs_vec(
 
     // Retrieve quadrature points and weights using Gauss-Legendre quadrature for the mesh cells
     FEM2D::gauss_legendre_quadrature(
-        gauss_precision, u_mesh.cell_type(), qpoints_rs, qweights
+        gp_rhs, u_mesh.cell_type(), qpoints_rs, qweights
     );
 
     // Calculate Lagrange basis functions and their derivatives for the mesh cells
@@ -691,14 +671,14 @@ void pStokesProblem::commit_lhs_mat()
     lhs_mat.setFromTriplets(lhs_coeffs.begin(), lhs_coeffs.end());
 }
 
-void pStokesProblem::apply_zero_dirichlet_bc(int boundary_ux_id, int boundary_uz_id)
+void pStokesProblem::apply_zero_dirichlet_bc()
 {
     // Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
     for (int col = 0; col < lhs_mat.outerSize(); ++col)
         // Check if the column corresponds to a boundary node for either ux or uz 
         if (
-            ux_d2v(col) != -1 && u_mesh.dimat(ux_d2v(col)) & boundary_ux_id ||
-            uz_d2v(col) != -1 && u_mesh.dimat(uz_d2v(col)) & boundary_uz_id
+            ux_d2v(col) != -1 && u_mesh.dimat(ux_d2v(col)) & ux_dirichlet_bc_mask ||
+            uz_d2v(col) != -1 && u_mesh.dimat(uz_d2v(col)) & uz_dirichlet_bc_mask 
         ) {
             // Eliminate column
             for (Eigen::SparseMatrix<FloatType>::InnerIterator it(lhs_mat, col); it; ++it) {
@@ -711,8 +691,8 @@ void pStokesProblem::apply_zero_dirichlet_bc(int boundary_ux_id, int boundary_uz
                 int row = it.row();
                 // Check if the row corresponds to a boundary node for either ux or uz
                 if (
-                    ux_d2v(row) != -1 && u_mesh.dimat(ux_d2v(row)) & boundary_ux_id ||
-                    uz_d2v(row) != -1 && u_mesh.dimat(uz_d2v(row)) & boundary_uz_id
+                    ux_d2v(row) != -1 && u_mesh.dimat(ux_d2v(row)) & ux_dirichlet_bc_mask ||
+                    uz_d2v(row) != -1 && u_mesh.dimat(uz_d2v(row)) & uz_dirichlet_bc_mask
                 ) {
                     // Eliminate row
                     it.valueRef() = 0.0;
@@ -795,25 +775,19 @@ void pStokesProblem::solve_linear_system()
     w_vec = solver.solve(rhs_vec);
 }
 
-void pStokesProblem::solve_nonlinear_system_picard(
-    FloatType A, FloatType n_i, FloatType eps_reg_2,
-    int fssa_version, FloatType fssa_param,
-    std::function<FloatType(FloatType, FloatType)> force_x,
-    std::function<FloatType(FloatType, FloatType)> force_z,
-    int ux_boundary_id, int uz_boundary_id,
-    int max_iter, FloatType stol, int gauss_precision
-) {
+void pStokesProblem::solve_nonlinear_system()
+{
     // Assemble incompressibility block
-    assemble_incomp_block(gauss_precision);
+    assemble_incomp_block();
 
     // Assemble FSSA block according to fssa version
     if (fssa_version == FSSA_VERTICAL)
-        assemble_fssa_vertical_block(fssa_param, force_x, force_z, gauss_precision);
+        assemble_fssa_vertical_block();
     else if (fssa_version == FSSA_NORMAL)
-        assemble_fssa_normal_block(fssa_param, force_z, gauss_precision);
+        assemble_fssa_normal_block();
 
     // Assemble the right-hand side vector
-    assemble_rhs_vec(force_x, force_z, gauss_precision);
+    assemble_rhs_vec();
     int nof_pushed_elements_before_stress_assembly = nof_pushed_elements;
 
     // Initialize error and old/new velocity functions for Picard iteration
@@ -839,11 +813,11 @@ void pStokesProblem::solve_nonlinear_system_picard(
         lhs_coeffs.resize(nof_pushed_elements_before_stress_assembly);
         nof_pushed_elements = nof_pushed_elements_before_stress_assembly;
         // Assemble stress block and commit
-        assemble_stress_block(A, n_i, eps_reg_2, gauss_precision);
+        assemble_stress_block();
         commit_lhs_mat();
 
         // Apply homogenous Dirichlet BC and solve linear system
-        apply_zero_dirichlet_bc(ux_boundary_id, uz_boundary_id);
+        apply_zero_dirichlet_bc();
         solve_linear_system();
 
         // Compute the step error and check convergence
@@ -864,7 +838,7 @@ void pStokesProblem::solve_nonlinear_system_picard(
         ux_old_func.assign(ux_new_func);
         uz_old_func.assign(uz_new_func);
         ++ip;
-    } while (error_step > stol && ip < max_iter);
+    } while (error_step > picard_stol && ip < picard_max_iter);
 
     // Log summary after solving
     logger.log_msg("-------------------------------------", INFO);
@@ -877,6 +851,7 @@ void pStokesProblem::solve_nonlinear_system_picard(
     logger.log_msg((boost::format{"min p, max p: %.4g, %.4g MPa"} % (w_vec(p_v2d).minCoeff()) % (w_vec(p_v2d).maxCoeff())).str(), INFO);
     logger.log_msg("-------------------------------------", INFO);
 }
+
 FEMFunction2D pStokesProblem::velocity_x()
 {
     FEMFunction2D ux_fem_func(u_mesh);
@@ -896,6 +871,14 @@ FEMFunction2D pStokesProblem::pressure()
     FEMFunction2D p_fem_func(p_mesh);
     p_fem_func.vals = w_vec(p_v2d);
     return p_fem_func;
+}
+
+void pStokesProblem::resize_lhs(int size)
+{
+    if (size < 0)
+        throw std::invalid_argument("size must be non-negative");
+
+    lhs_coeffs.resize(size);
 }
 
 void pStokesProblem::reset_lhs()

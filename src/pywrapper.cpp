@@ -28,6 +28,7 @@
 #include <poisson_fem.hpp>
 #include <pstokes_fem.hpp>
 #include <free_surface_fem.hpp>
+#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
 namespace py = boost::python;
 
@@ -53,6 +54,7 @@ std::function<T(Args...)> pyfunc_to_cppfunc(py::object py_func)
 
 BOOST_PYTHON_MODULE(biceps)
 {
+    // Expose Eigen
     eigenpy::enableEigenPy();
 
     // Expose enums and constants
@@ -249,58 +251,63 @@ BOOST_PYTHON_MODULE(biceps)
         .def_readonly("sol_vec_free", &PoissonProblem::sol_vec_free);
 
     // Expose pStokesProblem
-    py::class_<pStokesProblem>("pStokesProblem", py::init<StructuredMesh &, StructuredMesh &>())
+    py::class_<pStokesProblem>("pStokesProblem", py::no_init)
+    .def(
+        "__init__",
+        py::make_constructor(
+            +[](FloatType rate_factor,
+                FloatType glen_exponent,
+                FloatType eps_reg_2,
+                py::object func_x,
+                py::object func_z,
+                StructuredMesh &u_mesh,
+                StructuredMesh &p_mesh
+            ) {
+                return new pStokesProblem(
+                    rate_factor,
+                    glen_exponent,
+                    eps_reg_2,
+                    pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(func_x),
+                    pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(func_z),
+                    u_mesh,
+                    p_mesh
+                );
+            },
+            py::default_call_policies(),
+            (py::arg("rate_factor"), py::arg("glen_exponent"), py::arg("eps_reg_2"), py::arg("func_x"), py::arg("func_z"), py::arg("u_mesh"), py::arg("p_mesh"))
+        )
+    )
     .def("assemble_stress_block", &pStokesProblem::assemble_stress_block)
     .def("assemble_incomp_block", &pStokesProblem::assemble_incomp_block)
-    .def("assemble_fssa_normal_block", +[](pStokesProblem &self, FloatType stab_param, py::object force_z, int gauss_precision) {
-        self.assemble_fssa_normal_block(
-            stab_param,
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_z),
-            gauss_precision
-        );
-    })
-    .def("assemble_fssa_vertical_block", +[](pStokesProblem &self, FloatType stab_param, py::object force_x, py::object force_z, int gauss_precision) {
-        self.assemble_fssa_vertical_block(
-            stab_param,
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_x),
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_z),
-            gauss_precision
-        );
-    })
-    .def("assemble_rhs_vec", +[](pStokesProblem &self, py::object force_x, py::object force_z, int gauss_precision) {
-        self.assemble_rhs_vec(
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_x),
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_z),
-            gauss_precision
-        );
-    })
-    .def("assemble_fssa_vertical_rhs_vec", +[](pStokesProblem &self, FloatType stab_param, py::object force_x, py::object force_z, py::object accum, int gauss_precision) {
-        self.assemble_fssa_vertical_rhs(
-            stab_param,
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_x),
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_z),
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(accum),
-            gauss_precision
-        );
-    })
+    .def("assemble_fssa_normal_block", &pStokesProblem::assemble_fssa_normal_block)
+    .def("assemble_fssa_vertical_block", &pStokesProblem::assemble_fssa_vertical_block)
+    .def("assemble_rhs_vec", &pStokesProblem::assemble_rhs_vec)
+    .def("assemble_fssa_vertical_rhs_vec", &pStokesProblem::assemble_fssa_vertical_rhs)
     .def("commit_lhs_mat", &pStokesProblem::commit_lhs_mat)
     .def("prune_lhs", &pStokesProblem::prune_lhs)
     .def("apply_zero_dirichlet_bc", &pStokesProblem::apply_zero_dirichlet_bc)
     .def("solve_linear_system", &pStokesProblem::solve_linear_system)
-    .def("solve_nonlinear_system_picard", +[](pStokesProblem &self, FloatType A, FloatType n_i, FloatType eps_reg_2, int fssa_version, FloatType fssa_param, py::object force_x, py::object force_z, int ux_boundary_id, int uz_boundary_id, int max_iter, FloatType stol, int gauss_precision ) {
-        self.solve_nonlinear_system_picard(
-            A, n_i, eps_reg_2, fssa_version, fssa_param,
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_x),
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(force_z),
-            ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
-        );
-    })
+    .def("solve_nonlinear_system", &pStokesProblem::solve_nonlinear_system)
     .def("velocity_x", &pStokesProblem::velocity_x)
     .def("velocity_z", &pStokesProblem::velocity_z)
     .def("pressure", &pStokesProblem::pressure)
+    .def("resize_lhs", &pStokesProblem::resize_lhs)
     .def("reset_lhs", &pStokesProblem::reset_lhs)
     .def("reset_rhs", &pStokesProblem::reset_rhs)
     .def("reset_system", &pStokesProblem::reset_system)
+    .def_readwrite("rate_factor", &pStokesProblem::rate_factor)
+    .def_readwrite("glen_exponent", &pStokesProblem::glen_exponent)
+    .def_readwrite("eps_reg_2", &pStokesProblem::eps_reg_2)
+    .def_readwrite("fssa_version", &pStokesProblem::fssa_version)
+    .def_readwrite("fssa_param", &pStokesProblem::fssa_param)
+    .def_readwrite("gp_stress", &pStokesProblem::gp_stress)
+    .def_readwrite("gp_incomp", &pStokesProblem::gp_incomp)
+    .def_readwrite("gp_fssa_lhs", &pStokesProblem::gp_fssa_lhs)
+    .def_readwrite("gp_fssa_rhs", &pStokesProblem::gp_fssa_rhs)
+    .def_readwrite("gp_rhs", &pStokesProblem::gp_rhs)
+    .def_readwrite("ux_dirichlet_bc_mask", &pStokesProblem::ux_dirichlet_bc_mask)
+    .def_readwrite("uz_dirichlet_bc_mask", &pStokesProblem::uz_dirichlet_bc_mask)
+    .def_readonly("nof_pushed_elements", &pStokesProblem::nof_pushed_elements)
     .def_readonly("rhs_vec", &pStokesProblem::rhs_vec)
     .def_readonly("w_vec", &pStokesProblem::w_vec);
 

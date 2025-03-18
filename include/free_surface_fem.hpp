@@ -50,24 +50,14 @@ private:
     Eigen::VectorX<FloatType> rhs_vec; ///< The RHS vector.
 
 public:
-    /**
-     * @brief Mesh for the height field in the free surface problem.
-     */
     IntervalMesh &h_mesh; ///< The height mesh for the free surface problem.
-
-    /**
-     * @brief Mesh for the velocity field in the free surface problem.
-     */
     IntervalMesh &u_mesh; ///< The velocity mesh for the free surface problem.
 
-    /**
-     * @brief Vector storing the height values of the free surface.
-     */
     Eigen::VectorX<FloatType> zs_vec; ///< Free surface height values.
 
-    /**
-     * @brief Number of elements pushed for the LHS matrix assembly.
-     */
+    int gp_lhs = 5;  ///< Gauss precision for lhs matrix.
+    int gp_rhs = 5;  ///< Gauss precision for rhs vector.
+
     int nof_pushed_elements = 0; ///< Number of elements pushed into the LHS matrix.
 
     /**
@@ -80,10 +70,8 @@ public:
 
     /**
      * @brief Assembles the left-hand side (LHS) matrix for the explicit scheme.
-     * 
-     * @param[in] gauss_precision The number of Gauss points for integration.
      */
-    void assemble_lhs_explicit(int gauss_precision);
+    void assemble_lhs_explicit();
 
     /**
      * @brief Assembles the right-hand side (RHS) vector for the explicit scheme.
@@ -93,15 +81,13 @@ public:
      * @param[in] uz_fem_func The FEM function for the velocity in the z-direction.
      * @param[in] ac_fem_func The FEM function for the acceleration.
      * @param[in] dt The time step for the simulation.
-     * @param[in] gauss_precision The number of Gauss points for integration.
      */
     void assemble_rhs_explicit(
         FEMFunction1D &h0_fem_func,
         FEMFunction1D &ux_fem_func,
         FEMFunction1D &uz_fem_func,
         FEMFunction1D &ac_fem_func,
-        FloatType dt,
-        int gauss_precision
+        FloatType dt
     );
 
     /**
@@ -109,12 +95,10 @@ public:
      * 
      * @param[in] ux_fem_func The FEM function for the velocity in the x-direction.
      * @param[in] dt The time step for the simulation.
-     * @param[in] gauss_precision The number of Gauss points for integration.
      */
     void assemble_lhs_simplicit(
         FEMFunction1D &ux_fem_func,
-        FloatType dt,
-        int gauss_precision
+        FloatType dt
     );
 
     /**
@@ -124,14 +108,12 @@ public:
      * @param[in] uz_fem_func The FEM function for the velocity in the z-direction.
      * @param[in] ac_fem_func The FEM function for the acceleration.
      * @param[in] dt The time step for the simulation.
-     * @param[in] gauss_precision The number of Gauss points for integration.
      */
     void assemble_rhs_simplicit(
         FEMFunction1D &h0_fem_func,
         FEMFunction1D &uz_fem_func,
         FEMFunction1D &ac_fem_func,
-        FloatType dt,
-        int gauss_precision
+        FloatType dt
     );
 
     /**
@@ -166,4 +148,3 @@ public:
      */
     void reset_system();
 };
-

@@ -32,7 +32,7 @@ FreeSurfaceProblem::FreeSurfaceProblem(
     lhs_coeffs.reserve((2*h_mesh.degree()+1)*h_mesh.nof_dofs());
 }
 
-void FreeSurfaceProblem::assemble_lhs_explicit(int gauss_precision)
+void FreeSurfaceProblem::assemble_lhs_explicit()
 {
     // Local variables for storing matrix and vector data during assembly.
     Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
@@ -40,9 +40,7 @@ void FreeSurfaceProblem::assemble_lhs_explicit(int gauss_precision)
     Eigen::VectorXi element;
 
     // Perform Gauss-Legendre quadrature for the given precision.
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_lhs, qpoints_r, qweights);
 
     // Generate Lagrange basis functions for the finite element degree.
     FEM1D::lagrange_basis(
@@ -100,8 +98,7 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
     FEMFunction1D &ux_fem_func,
     FEMFunction1D &uz_fem_func,
     FEMFunction1D &ac_fem_func,
-    FloatType dt,
-    int gauss_precision
+    FloatType dt
 )
 {
     // Local variables for storing matrix and vector data during assembly.
@@ -111,9 +108,7 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_rhs, qpoints_r, qweights);
 
     // Generate Lagrange basis functions for the finite element degree.
     FEM1D::lagrange_basis(
@@ -168,7 +163,7 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
 }
 
 void FreeSurfaceProblem::assemble_lhs_simplicit(
-    FEMFunction1D &ux_fem_func, FloatType dt, int gauss_precision
+    FEMFunction1D &ux_fem_func, FloatType dt
 ) {
     // Local variables for storing matrix and vector data during assembly.
     Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
@@ -177,9 +172,7 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_lhs, qpoints_r, qweights);
 
     // Generate Lagrange basis functions for the finite element degree.
     FEM1D::lagrange_basis(
@@ -254,8 +247,7 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
     FEMFunction1D &h0_fem_func,
     FEMFunction1D &uz_fem_func,
     FEMFunction1D &ac_fem_func,
-    FloatType dt,
-    int gauss_precision
+    FloatType dt
 ) {
     // Local variables for storing matrix and vector data during assembly.
     Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
@@ -264,9 +256,7 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
-    FEM1D::gauss_legendre_quadrature(
-        gauss_precision, qpoints_r, qweights
-    );
+    FEM1D::gauss_legendre_quadrature(gp_rhs, qpoints_r, qweights);
 
     // Generate Lagrange basis functions for the finite element degree.
     FEM1D::lagrange_basis(

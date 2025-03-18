@@ -44,10 +44,10 @@ BOOST_AUTO_TEST_CASE(test_fluctuating_flow)
         FloatType error_uz_tol = std::get<4>(test_case);
         StructuredMesh u_mesh(nx, nz, 2, cell_type);
         StructuredMesh p_mesh(nx, nz, 1, cell_type);
-        pStokesProblem psp(u_mesh, p_mesh);
-        psp.assemble_stress_block(A, n_i, eps_reg_2, 5);
-        psp.assemble_incomp_block(5);
-        psp.assemble_rhs_vec(force_x, force_z, 5);
+        pStokesProblem psp(A, n_i, eps_reg_2, force_x, force_z, u_mesh, p_mesh);
+        psp.assemble_stress_block();
+        psp.assemble_incomp_block();
+        psp.assemble_rhs_vec();
         psp.commit_lhs_mat();
 
         psp.apply_dirichlet_bc(NORTH_ID, HORIZONTAL, &ux_func);

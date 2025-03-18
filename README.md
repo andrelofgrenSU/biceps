@@ -502,7 +502,6 @@ dt = 35  # Time step size
 deg_u = 2  # Polynomial degree for velocity field
 deg_p = 1  # Polynomial degree for pressure field
 deg_h = 1  # Polynomial degree for height field
-gauss_precision = 5  # Number of Gauss points in each direction per element
 
 max_iter = 100  # Maximum number of iterations for solver
 stol = 1e-6  # Convergence tolerance for solver
@@ -535,16 +534,6 @@ spmat_h[:, 1] = 0
 u_mesh_1d = bp.IntervalMesh(spmat_u, deg_u)
 h_mesh_1d = bp.IntervalMesh(spmat_h, deg_h)
 
-# Define ids for Dirichlet boundary condition
-ux_boundary_id = (
-    bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
-    bp.DOMAIN_IDS_2D.WEST_ID |
-    bp.DOMAIN_IDS_2D.BED_ID |
-    bp.DOMAIN_IDS_2D.EAST_ID |
-    bp.DOMAIN_IDS_2D.NORTH_EAST_ID
-)
-uz_boundary_id = bp.DOMAIN_IDS_2D.BED_ID
-
 # Initialize FEM functions for height, velocity, and accumulation
 ux_func = bp.FEMFunction1D(u_mesh_1d)
 uz_func = bp.FEMFunction1D(u_mesh_1d)
@@ -554,8 +543,24 @@ ac_func = bp.FEMFunction1D(h_mesh_1d)
 # For L2 norm calculation
 h0_func.assemble_mass_matrix()
 
-# Initialize the pStokes and Free Surface Problem
-psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
+# Initialize the pStokes
+psp = bp.pStokesProblem(
+    A, n_i, eps_reg_2, force_x, force_z, u_mesh_2d, p_mesh_2d
+)
+
+# Set Dirichlet BC masks
+# Horizontal velocity component
+psp.ux_dirichlet_bc_mask = (
+    bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
+    bp.DOMAIN_IDS_2D.WEST_ID |
+    bp.DOMAIN_IDS_2D.BED_ID |
+    bp.DOMAIN_IDS_2D.EAST_ID |
+    bp.DOMAIN_IDS_2D.NORTH_EAST_ID
+)
+# Vertical velocity component
+psp.uz_dirichlet_bc_mask = bp.DOMAIN_IDS_2D.BED_ID
+
+# Initialize the free-surface problem
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
 
 # Plot initial surface profile
@@ -564,10 +569,7 @@ plt.plot(xs_vec, zs_vec)
 # Time-stepping loop
 for k in range(nt):
     # Assemble and solve the nonlinear pStokes problem
-    psp.solve_nonlinear_system_picard(
-        A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
-        ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
-    )
+    psp.solve_nonlinear_system()
     # Clear lhs matrix and rhs vector
     psp.reset_system()
 
@@ -585,10 +587,10 @@ for k in range(nt):
     print(f"A = {u_mesh_2d.area(): .16f}")
 
     # Solve the free surface problem using explicit time stepping
-    fsp.assemble_lhs_explicit(gauss_precision)
+    fsp.assemble_lhs_explicit()
     fsp.commit_lhs()
     fsp.assemble_rhs_explicit(
-        h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+        h0_func, ux_func, uz_func, ac_func, dt
     )
     fsp.solve_linear_system()
     # Clear lhs matrix and rhs vector
@@ -628,10 +630,8 @@ using Plots
 import Printf.@printf
 bp = pyimport("biceps")
 
-py"""
-import numpy as np
-GRAVITY = 9.8
-ICE_DENSITY = 910
+GRAVITY = 9.8  # Gravitational acceleration
+ICE_DENSITY = 910  # Ice mass density
 
 x0 = 0.0  # Left end
 x1 = 100.0  # Right end
@@ -639,14 +639,17 @@ L = x1 - x0  # Length of the domain
 H = 1  # Mean height of the domain
 z0 = 0.1  # Amplitude of surface undulation
 
+py"""
+import numpy as np
+
 # Define the expressions for the bottom and surface elevations
 def zb_expr(x): return 0.0  # Flat bottom surface
-def zs_expr(x): return H + z0*np.cos(np.pi*x/L)  # Undulating surface elevation
+def zs_expr(x): return $H + $z0*np.cos(np.pi*x/$L)  # Undulating surface elevation
 
 
 # Define external force functions
 def force_x(x, z): return 0.0  # No horizontal force
-def force_z(x, z): return -1e-3*GRAVITY*ICE_DENSITY  # Gravity force in the z-direction
+def force_z(x, z): return -1e-3*$GRAVITY*$ICE_DENSITY  # Gravity force in the z-direction
 """
 
 A = 100.0  # Ice softness parameter
@@ -663,7 +666,6 @@ dt = 35  # Time step size
 deg_u = 2  # Polynomial degree for velocity field
 deg_p = 1  # Polynomial degree for pressure field
 deg_h = 1  # Polynomial degree for height field
-gauss_precision = 5  # Number of Gauss points in each direction per element
 
 max_iter = 100  # Maximum number of iterations for solver
 stol = 1e-6  # Convergence tolerance for solver
@@ -674,9 +676,9 @@ u_mesh_2d = bp.StructuredMesh(nx, nz, deg_u, cell_type)
 p_mesh_2d = bp.StructuredMesh(nx, nz, deg_p, cell_type)
 
 # Extrude the meshes in the x and z directions
-u_mesh_2d.extrude_x(py"x0", py"x1")
+u_mesh_2d.extrude_x(x0, x1)
 u_mesh_2d.extrude_z(py"zb_expr", py"zs_expr")
-p_mesh_2d.extrude_x(py"x0", py"x1")
+p_mesh_2d.extrude_x(x0, x1)
 p_mesh_2d.extrude_z(py"zb_expr", py"zs_expr")
 
 # Extract degrees of freedom for surface nodes
@@ -699,16 +701,6 @@ spmat_h[:, 2] .= 0
 u_mesh_1d = bp.IntervalMesh(spmat_u, deg_u)
 h_mesh_1d = bp.IntervalMesh(spmat_h, deg_h)
 
-# Define ids for Dirichlet boundary condition
-ux_boundary_id = (
-    bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
-    bp.DOMAIN_IDS_2D.WEST_ID |
-    bp.DOMAIN_IDS_2D.BED_ID |
-    bp.DOMAIN_IDS_2D.EAST_ID |
-    bp.DOMAIN_IDS_2D.NORTH_EAST_ID
-)
-uz_boundary_id = bp.DOMAIN_IDS_2D.BED_ID
-
 # Initialize FEM functions for height, velocity, and accumulation
 ux_func = bp.FEMFunction1D(u_mesh_1d)
 uz_func = bp.FEMFunction1D(u_mesh_1d)
@@ -718,8 +710,24 @@ ac_func = bp.FEMFunction1D(h_mesh_1d)
 # For L2 norm calculation
 h0_func.assemble_mass_matrix()
 
-# Initialize the pStokes and Free Surface Problem
-psp = bp.pStokesProblem(u_mesh_2d, p_mesh_2d)
+# Initialize the pStokes
+psp = bp.pStokesProblem(
+    A, n_i, eps_reg_2, py"force_x", py"force_z", u_mesh_2d, p_mesh_2d
+)
+
+# Set Dirichlet BC masks
+# Horizontal velocity component
+psp.ux_dirichlet_bc_mask = (
+    bp.DOMAIN_IDS_2D.NORTH_WEST_ID |
+    bp.DOMAIN_IDS_2D.WEST_ID |
+    bp.DOMAIN_IDS_2D.BED_ID |
+    bp.DOMAIN_IDS_2D.EAST_ID |
+    bp.DOMAIN_IDS_2D.NORTH_EAST_ID
+)
+# Vertical velocity component
+psp.uz_dirichlet_bc_mask = bp.DOMAIN_IDS_2D.BED_ID
+
+# Initialize the free-surface problem
 fsp = bp.FreeSurfaceProblem(h_mesh_1d, u_mesh_1d)
 
 # Plot initial surface profile
@@ -728,10 +736,7 @@ plot!(xs_vec, zs_vec, lw=2)
 # Time-stepping loop
 for k=1:nt
     # Assemble and solve the nonlinear pStokes problem
-    psp.solve_nonlinear_system_picard(
-        A, n_i, eps_reg_2, fssa_version, fssa_param, py"force_x", py"force_z",
-        ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
-    )
+    psp.solve_nonlinear_system()
     # Clear lhs matrix and rhs vector
     psp.reset_system()
 
@@ -749,10 +754,10 @@ for k=1:nt
     @printf("A = %.16f\n", u_mesh_2d.area())
 
     # Solve the free surface problem using explicit time stepping
-    fsp.assemble_lhs_explicit(gauss_precision)
+    fsp.assemble_lhs_explicit()
     fsp.commit_lhs()
     fsp.assemble_rhs_explicit(
-        h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+        h0_func, ux_func, uz_func, ac_func, dt
     )
     fsp.solve_linear_system()
     # Clear lhs matrix and rhs vector
