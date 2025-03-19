@@ -876,7 +876,7 @@ FEMFunction2D pStokesProblem::pressure()
 void pStokesProblem::resize_lhs(int size)
 {
     if (size < 0)
-        throw std::invalid_argument("size must be non-negative");
+        throw std::invalid_argument("size can not be negative");
 
     lhs_coeffs.resize(size);
 }

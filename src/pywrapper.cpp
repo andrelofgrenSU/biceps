@@ -28,7 +28,7 @@
 #include <poisson_fem.hpp>
 #include <pstokes_fem.hpp>
 #include <free_surface_fem.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <time_integrator.hpp>
 
 namespace py = boost::python;
 
@@ -324,4 +324,9 @@ BOOST_PYTHON_MODULE(biceps)
         .def("reset_rhs", &FreeSurfaceProblem::reset_rhs)
         .def("reset_system", &FreeSurfaceProblem::reset_system)
         .def_readonly("zs_vec", &FreeSurfaceProblem::zs_vec);
+
+    // Expose TimeIntegrator
+    py::class_<TimeIntegrator>("TimeIntegrator", py::init<pStokesProblem &, FreeSurfaceProblem &>())
+        .def("step_explicit", &TimeIntegrator::step_explicit)
+        .def("extrude_mesh_z", &TimeIntegrator::extrude_mesh_z);
 }

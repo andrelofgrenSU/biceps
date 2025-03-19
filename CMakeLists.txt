@@ -140,6 +140,7 @@ install(
         include/pstokes_fem.hpp
         include/poisson_fem.hpp
         include/free_surface_fem.hpp
+        include/time_integrator.hpp
     DESTINATION
         include
 )

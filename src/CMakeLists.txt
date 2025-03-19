@@ -34,6 +34,7 @@ add_library(
     ${CMAKE_CURRENT_SOURCE_DIR}/poisson_fem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/pstokes_fem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/free_surface_fem.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/time_integrator.cpp
     ${PYTHON_WRAPPER}
 )
 

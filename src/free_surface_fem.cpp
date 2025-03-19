@@ -60,7 +60,7 @@ void FreeSurfaceProblem::assemble_lhs_explicit()
     );
 
     // Loop over cells and compute the contribution to the LHS matrix.
-    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+    for (int ci = 0; ci < h_mesh.nof_cells(); ++ci) {
         element = h_mesh.cmat(ci, Eigen::all);
         node_coords = h_mesh.pmat(element, Eigen::all);
         FEM1D::map_to_reference_cell(
@@ -69,18 +69,18 @@ void FreeSurfaceProblem::assemble_lhs_explicit()
         );
 
         // Integrate over quadrature points to compute the matrix A.
-        for (int q = 0; q < qpoints_r.rows(); q++) {
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
             FloatType detJxW = qweights(q)*detJ_r(q);
-            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-                for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+            for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
+                for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                     A(i, j) += phi_r(q, i)*phi_r(q, j)*detJxW;
                 }
             }
         }
 
         // Store the computed coefficients into the triplet list.
-        for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-            for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+        for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
+            for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                 lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
                     element(i),
                     element(j),
@@ -129,7 +129,7 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
     );
 
     // Loop over cells to compute the contribution to the RHS vector.
-    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+    for (int ci = 0; ci < h_mesh.nof_cells(); ++ci) {
         element_h = h_mesh.cmat(ci, Eigen::all);
         element_u = u_mesh.cmat(ci, Eigen::all);
         node_coords_h = h_mesh.pmat(element_h, Eigen::all);
@@ -151,9 +151,9 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
         Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the RHS contributions.
-        for (int q = 0; q < qpoints_r.rows(); q++) {
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
             FloatType detJxW = qweights(q)*detJ_r(q);
-            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+            for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 rhs_vec(element_h(i)) += h_phi_r(q, i)*(
                     h0_vec(q) + dt*(uz_vec(q) - ux_vec(q)*dh_vec(q) + ac_vec(q))
                 )*detJxW;
@@ -198,7 +198,7 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
     );
 
     // Loop over cells to compute the implicit contribution to the LHS matrix.
-    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+    for (int ci = 0; ci < h_mesh.nof_cells(); ++ci) {
         element_h = h_mesh.cmat(ci, Eigen::all);
         element_u = u_mesh.cmat(ci, Eigen::all);
         node_coords_h = h_mesh.pmat(element_h, Eigen::all);
@@ -216,10 +216,10 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
         Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the LHS matrix.
-        for (int q = 0; q < qpoints_r.rows(); q++) {
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
             FloatType detJxW = qweights(q)*detJ_r(q);
-            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-                for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+            for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
+                for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                     A(i, j) += (
                         h_phi_r(q, i)*h_phi_r(q, j) +
                         dt*ux_vec(q)*h_phi_r(q, i)*h_dphi_x(q, j)
@@ -229,8 +229,8 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
         }
 
         // Store the computed coefficients into the triplet list.
-        for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
-            for (int j = 0; j < h_mesh.dofs_per_cell(); j++) {
+        for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
+            for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                 lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
                     element_h(i),
                     element_h(j),
@@ -277,7 +277,7 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
     );
 
     // Loop over cells to compute the implicit contribution to the RHS vector.
-    for (int ci = 0; ci < h_mesh.nof_cells(); ci++) {
+    for (int ci = 0; ci < h_mesh.nof_cells(); ++ci) {
         element_h = h_mesh.cmat(ci, Eigen::all);
         element_u = u_mesh.cmat(ci, Eigen::all);
         node_coords_h = h_mesh.pmat(element_h, Eigen::all);
@@ -297,9 +297,9 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
         Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the RHS contributions.
-        for (int q = 0; q < qpoints_r.rows(); q++) {
+        for (int q = 0; q < qpoints_r.rows(); ++q) {
             FloatType detJxW = qweights(q)*detJ_r(q);
-            for (int i = 0; i < h_mesh.dofs_per_cell(); i++) {
+            for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 rhs_vec(element_h(i)) += h_phi_r(q, i)*(
                     h0_vec(q) + dt*(uz_vec(q) + ac_vec(q))
                 )*detJxW;
