@@ -14,8 +14,8 @@ private:
 
 public:
     pStokesProblem &psp;  ///< pStokesProblem
-    FreeSurfaceProblem &fsp;  ///< pStokesProblem
-                              ///
+    FreeSurfaceProblem &fsp;  ///< Free-surface problem
+
     /**
      * @brief Constructor for initializing TimeIntegrator
      * 
@@ -23,6 +23,17 @@ public:
      * @param[in] fsp FreeSurfaceProblem
      */
     TimeIntegrator(pStokesProblem &psp, FreeSurfaceProblem &fsp);
+
+    /**
+    * @brief Numerically integrate forward inte time using forward Euler
+    *
+    * @param[in] dt Time-step size
+    * */
     Eigen::VectorX<FloatType> step_explicit(FloatType dt);
+    /**
+    * @brief Extrude pStokes meshes u_mesh and p_mesh
+    *
+    * @param[in] zs_vec Surface height vector
+    * */
     void extrude_mesh_z(const Eigen::VectorX<FloatType> &zs_vec);
 };
