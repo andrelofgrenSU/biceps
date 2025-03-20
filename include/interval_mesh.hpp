@@ -111,10 +111,10 @@ public:
      *
      * @param[in] x0 Starting point of the interval.
      * @param[in] x1 Ending point of the interval.
-     * @param[in] nx Number of divisions or cells within the interval.
+     * @param[in] n_cells Number of cells within the interval.
      * @param[in] degree Polynomial degree of the finite element basis functions.
      */
-    IntervalMesh(FloatType x0, FloatType x1, int nx, int degree);
+    IntervalMesh(FloatType x0, FloatType x1, int n_cells, int degree);
 
     /**
      * @brief Constructs an IntervalMesh from an existing point matrix and degree.
