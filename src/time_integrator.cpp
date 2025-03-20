@@ -4,7 +4,7 @@ TimeIntegrator::TimeIntegrator(
     pStokesProblem &psp, FreeSurfaceProblem &fsp
 ) : psp(psp), fsp(fsp)
 {
-    svinds = psp.u_mesh.extract_vertex_dof_inds(MESH2D::SURFACE_ID);
+    // Empty constructor
 }
 
 Eigen::VectorX<FloatType> TimeIntegrator::step_explicit(FloatType dt)
@@ -74,7 +74,7 @@ Eigen::VectorX<FloatType> TimeIntegrator::step_simplicit(FloatType dt)
     // Assemble the free-surface problem
     fsp.assemble_lhs_simplicit(ux_fem_func, dt);
     fsp.commit_lhs();
-    fsp.assemble_rhs_explicit(
+    fsp.assemble_rhs_simplicit(
         h0_fem_func, uz_fem_func, ac_fem_func, dt
     );
     // Solve the free-surface problem

@@ -307,6 +307,8 @@ BOOST_PYTHON_MODULE(biceps)
     .def_readwrite("gp_rhs", &pStokesProblem::gp_rhs)
     .def_readwrite("ux_dirichlet_bc_mask", &pStokesProblem::ux_dirichlet_bc_mask)
     .def_readwrite("uz_dirichlet_bc_mask", &pStokesProblem::uz_dirichlet_bc_mask)
+    .def_readwrite("picard_stol", &pStokesProblem::picard_stol)
+    .def_readwrite("picard_max_iter", &pStokesProblem::picard_max_iter)
     .def_readonly("nof_pushed_elements", &pStokesProblem::nof_pushed_elements)
     .def_readonly("rhs_vec", &pStokesProblem::rhs_vec)
     .def_readonly("w_vec", &pStokesProblem::w_vec);
