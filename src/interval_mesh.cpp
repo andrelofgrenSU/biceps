@@ -22,8 +22,15 @@
 #include <eigenpy/eigenpy.hpp>
 
 IntervalMesh::IntervalMesh(FloatType x0, FloatType x1, int n_cells, int degree) :
-    _degree(degree), _nof_cells(n_cells)  // Initialize degree and number of cells
+    _degree(degree), _nof_cells(n_cells)
 {
+    if (n_cells < 1)
+        throw std::invalid_argument("n_cells must be greater than 0");
+    if (degree < 1)
+        throw std::invalid_argument("degree must be greater than 0");
+    else if (degree > 2)
+        throw std::invalid_argument("degree greater than 2 is currently not supported");
+
     // Compute the number of degrees of freedom in the mesh
     _hl = _degree * n_cells;
 
