@@ -5,7 +5,7 @@
 
 /**
  * @class TimeIntegrator
- * @brief A class for coupling the pStokesProblem and the Free-surface problem.
+ * @brief A convenience class for coupling the pStokesProblem and the Free-surface problem.
  *
  * This class provides predefined time-stepping methods for the pStokes-coupled free-surface problem.
 */
@@ -25,15 +25,23 @@ public:
     TimeIntegrator(pStokesProblem &psp, FreeSurfaceProblem &fsp);
 
     /**
-    * @brief Numerically integrate forward inte time using forward Euler
+    * @brief Numerically integrate in time using explicit Euler
     *
     * @param[in] dt Time-step size
-    * */
+    */
     Eigen::VectorX<FloatType> step_explicit(FloatType dt);
+
     /**
-    * @brief Extrude pStokes meshes u_mesh and p_mesh
+    * @brief Numerically integrate in time using semi-implicit Euler
+    *
+    * @param[in] dt Time-step size
+    */
+    Eigen::VectorX<FloatType> step_simplicit(FloatType dt);
+
+    /**
+    * @brief Extrude pStokes velocity and pressure meshes
     *
     * @param[in] zs_vec Surface height vector
-    * */
+    */
     void extrude_mesh_z(const Eigen::VectorX<FloatType> &zs_vec);
 };
