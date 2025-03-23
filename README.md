@@ -80,12 +80,12 @@ The steps for installing this repository is:
 
 1. Clone repository:
 ```console
-$ git clone https://github.com/andrelofgrenSU/biceps.git
+$ git clone https://github.com/andrelofgrenSU/biceps.git && cd biceps
 ```
 
-2. Compile:
+2. Configure and compile (on all available cores):
 ```console
-$ cd biceps && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DENABLE_PYTHON=ON -DENABLE_TESTS=ON  -DENABLE_DOCS=ON -DUSE_LONG_DOUBLE=OFF
+$ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release -DENABLE_PYTHON=ON -DENABLE_TESTS=ON -DENABLE_DOCS=ON -DUSE_LONG_DOUBLE=OFF && make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq | wc -l)
 ```
 
 3. Build documentation (optional):
