@@ -9,7 +9,7 @@ In the following instructions, commands requiring elevated privileges are prepen
 This project has rather few dependencies; a minimal C++ installation requires only a working C++ compiler and tool chain (e.g., [gcc](https://gcc.gnu.org/)), [CMake](https://cmake.org/), [boost](https://www.boost.org/), and [Eigen3](https://eigen.tuxfamily.org/index.php?title=Main_Page):
 
 ```console
-# apt install gcc build-essentials cmake libboost-dev libeigen3-dev
+# apt install gcc build-essential cmake libboost-dev libeigen3-dev
 ```
 
 ```console
