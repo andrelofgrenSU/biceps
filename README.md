@@ -58,7 +58,7 @@ $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_DOCS=ON
 Unit testing is performed using the boost unit test module, which can be installed by running:
 
 ```console
-# apt install liboost-test-dev
+# apt install libboost-test-dev
 ```
 
 To build Biceps with testing enabled, configure CMake:
