@@ -27,7 +27,7 @@ Building the python interface requires [EigenPy](https://github.com/stack-of-tas
 After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
 
 ```console
-$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-v3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release
+$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release
 ```
 
 Then to install run:
