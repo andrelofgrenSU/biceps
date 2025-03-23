@@ -24,19 +24,26 @@ Building the python interface requires [EigenPy](https://github.com/stack-of-tas
 # apt install python3-numpy python3-scipy libboost-python-dev
 ```
 
-After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and compile it:
+After installing dependencies for [EigenPy](https://github.com/stack-of-tasks/eigenpy), grab the latest release from [here](https://github.com/stack-of-tasks/eigenpy/archive/refs/tags/v3.10.3.tar.gz) and extract it:
 
 ```console
-$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-3.10.3 && mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release
+$ tar -xvzf v3.10.3.tar.gz && cd eigenpy-3.10.3
 ```
 
-Then to install run:
+Then configure and compile (on all available cores):
+
+```console
+$ mkdir -p .build && cd .build && cmake .. -DCMAKE_BUILD_TYPE=release && make -j$(cat /proc/cpuinfo | grep "core id" | sort | uniq | wc -l)
+```
+
+Finally, to install run:
 
 ```console
 # make install
 ```
 
 To build Biceps with Python enabled, configure CMake:
+
 ```console
 $ cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_PYTHON=ON
 ```
