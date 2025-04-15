@@ -32,8 +32,9 @@ FloatType L = x1 - x0;  // Length of the domain
 FloatType H = 1.0;  // Mean height of the domain
 FloatType z0 = 0.1;  // Amplitude of surface undulation
 
-FloatType A = 100.0;  // Ice softness parameter
-FloatType n_i = 3.0;  // Glen exponent
+FloatType eta = 1e12 * PA_TO_MPA / SEC_PER_YEAR;
+FloatType A = 0.5/eta;  // Ice softness parameter
+FloatType n_i = 1.0;  // Glen exponent
 FloatType eps_reg_2 = 1e-10;  // Regularization parameter
 int fssa_version = FSSA_NONE;  // No FSSA stabilization
 FloatType fssa_param = 0;  // Stabilization parameter in FSSA 
@@ -41,7 +42,7 @@ FloatType fssa_param = 0;  // Stabilization parameter in FSSA
 int nx = 50;  // Number of elements in x-direction
 int nz = 5;  // Number of elements in z-direction
 int nt = 100;  // Number of time steps
-FloatType dt = 35.0;  // Time step size
+FloatType dt = 0.04;  // Time step size
 int deg_u = 2;  // Polynomial degree for velocity field
 int deg_p = 1;  // Polynomial degree for pressure field
 int deg_h = 1;  // Polynomial degree for height field
@@ -119,18 +120,33 @@ int main(int argc, char *argv[])
     // For L2 norm calculation
     h0_func.assemble_mass_matrix();
 
-    // Initialize the pStokes and Free Surface Problem
-    pStokesProblem psp(u_mesh_2d, p_mesh_2d);
+    // Initialize the pStokes
+    pStokesProblem psp(A, n_i, eps_reg_2, force_x, force_z, u_mesh_2d, p_mesh_2d);
+
+    // Configure BC mask (impenetrability on sides and noslip on bedrock)
+    psp.ux_dirichlet_bc_mask = MESH2D::NORTH_WEST_ID | MESH2D::WEST_ID | MESH2D::BED_ID | MESH2D::EAST_ID | MESH2D::NORTH_EAST_ID;
+    psp.uz_dirichlet_bc_mask = MESH2D::BED_ID;
+
+    // Initialize the Free Surface Problem
     FreeSurfaceProblem fsp(h_mesh_1d, u_mesh_1d);
 
     // Plot initial surface profile
     matplot::plot(xs_vec, zs_vec)->line_width(2.0);
     matplot::hold(true);
     for (int k = 0; k < nt; k++) {
-        psp.solve_nonlinear_system_picard(
-            A, n_i, eps_reg_2, fssa_version, fssa_param, force_x, force_z,
-            ux_boundary_id, uz_boundary_id, max_iter, stol, gauss_precision
-        );
+
+        // Assemble the system
+        psp.assemble_stress_block();
+        psp.assemble_incomp_block();
+        // Call commit to insert elements to system matrix
+        psp.commit_lhs_mat();
+        psp.assemble_rhs_vec();
+
+        // Apply bcs by modifying the system matrix
+        psp.apply_zero_dirichlet_bc();
+
+        // Solve for velocity and pressure
+        psp.solve_linear_system();
         // Clear lhs matrix and rhs vector.
         psp.reset_system();
 
@@ -148,10 +164,10 @@ int main(int argc, char *argv[])
         std::cout << boost::format{"A = %.16f"} %u_mesh_2d.area() << std::endl;
 
         // Solve the free surface problem using explicit time stepping
-        fsp.assemble_lhs_explicit(gauss_precision);
+        fsp.assemble_lhs_explicit();
         fsp.commit_lhs();
         fsp.assemble_rhs_explicit(
-            h0_func, ux_func, uz_func, ac_func, dt, gauss_precision
+            h0_func, ux_func, uz_func, ac_func, dt
         );
         fsp.solve_linear_system();
         // Clear lhs matrix and rhs vector
