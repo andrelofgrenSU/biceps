@@ -18,6 +18,8 @@
  */
 #include <interval_mesh.hpp>
 #include <enums.hpp>
+#include <boost/python.hpp>
+#include <eigenpy/eigenpy.hpp>
 
 IntervalMesh::IntervalMesh(FloatType x0, FloatType x1, int n_cells, int degree) :
     _degree(degree), _nof_cells(n_cells)
