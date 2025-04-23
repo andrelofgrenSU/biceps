@@ -719,13 +719,13 @@ void pStokesProblem::apply_dirichlet_bc(
         for (int i = 0; i < nnz; i++) {
             int row = *(lhs_mat.innerIndexPtr() + *outer_p + i);
             if (velocity_component == HORIZONTAL && ux_d2v(row) != -1) {
-                if (u_mesh.dimat(ux_d2v(row)) & boundary_part) {
+                if (u_mesh.dimat(ux_d2v(row)) & boundary_id) {
                     FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
                     *val_ptr = 0.0;
                 }
             }
             else if (velocity_component == VERTICAL && uz_d2v(row) != -1) {
-                if (u_mesh.dimat(uz_d2v(row)) & boundary_part) {
+                if (u_mesh.dimat(uz_d2v(row)) & boundary_id) {
                     FloatType *val_ptr = lhs_mat.valuePtr() + *outer_p + i;
                     *val_ptr = 0.0;
                 }
@@ -742,15 +742,15 @@ void pStokesProblem::apply_dirichlet_bc(
         outer_p++
     ) {
         if (velocity_component == HORIZONTAL && ux_d2v(col) != -1) {
-            if (u_mesh.dimat(ux_d2v(col)) & boundary_part) {
+            if (u_mesh.dimat(ux_d2v(col)) & boundary_id) {
                 FloatType x = u_mesh.pmat(ux_d2v(col), 0);
                 FloatType z = u_mesh.pmat(ux_d2v(col), 1);
                 lhs_mat.coeffRef(col, col) = 1.0;
-                rhs_vec(col) = u_func(x, z);  // Dirichlet bc
+                rhs_vec(col) = ub_func(x, z);  // Dirichlet bc
             }
         }
         else if (velocity_component == VERTICAL && uz_d2v(col) != -1) {
-            if (u_mesh.dimat(uz_d2v[col]) & boundary_part) {
+            if (u_mesh.dimat(uz_d2v[col]) & boundary_id) {
                 FloatType x = u_mesh.pmat(uz_d2v(col), 0);
                 FloatType z = u_mesh.pmat(uz_d2v(col), 1);
                 lhs_mat.coeffRef(col, col) = 1.0;

@@ -290,7 +290,7 @@ BOOST_PYTHON_MODULE(biceps)
         self.apply_dirichlet_bc(
             boundary_id,
             velocity_component,
-            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(ub_func),
+            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(ub_func)
         );
     })
     .def("solve_linear_system", &pStokesProblem::solve_linear_system)
