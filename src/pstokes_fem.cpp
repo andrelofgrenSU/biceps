@@ -703,9 +703,9 @@ void pStokesProblem::apply_zero_dirichlet_bc()
 }
 
 void pStokesProblem::apply_dirichlet_bc(
-    const int boundary_part,
+    const int boundary_id,
     const int velocity_component,
-    std::function<FloatType(FloatType, FloatType)> u_func
+    std::function<FloatType(FloatType, FloatType)> ub_func
 ) {
     // Loop over all nnz elements and set off-diagonals corresponding to boundary nodes to zero
     int *outer_end = lhs_mat.outerIndexPtr() + lhs_mat.rows();
@@ -754,7 +754,7 @@ void pStokesProblem::apply_dirichlet_bc(
                 FloatType x = u_mesh.pmat(uz_d2v(col), 0);
                 FloatType z = u_mesh.pmat(uz_d2v(col), 1);
                 lhs_mat.coeffRef(col, col) = 1.0;
-                rhs_vec(col) = u_func(x, z);  // Dirichlet bc
+                rhs_vec(col) = ub_func(x, z);  // Dirichlet bc
             }
         }
         col++;

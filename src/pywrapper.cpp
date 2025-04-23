@@ -286,6 +286,13 @@ BOOST_PYTHON_MODULE(biceps)
     .def("commit_lhs_mat", &pStokesProblem::commit_lhs_mat)
     .def("prune_lhs", &pStokesProblem::prune_lhs)
     .def("apply_zero_dirichlet_bc", &pStokesProblem::apply_zero_dirichlet_bc)
+    .def("apply_dirichlet_bc", +[](pStokesProblem &self, int boundary_id, int velocity_component, py::object ub_func) {
+        self.apply_dirichlet_bc(
+            boundary_id,
+            velocity_component,
+            pyfunc_to_cppfunc<FloatType, FloatType, FloatType>(ub_func),
+        );
+    })
     .def("solve_linear_system", &pStokesProblem::solve_linear_system)
     .def("solve_nonlinear_system", &pStokesProblem::solve_nonlinear_system)
     .def("velocity_x", &pStokesProblem::velocity_x)
