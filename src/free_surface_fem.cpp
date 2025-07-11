@@ -24,10 +24,10 @@ FreeSurfaceProblem::FreeSurfaceProblem(
 ) : h_mesh(h_mesh), u_mesh(u_mesh)
 {
     // Initialize the left-hand side matrix and right-hand side vector.
-    lhs_mat = Eigen::SparseMatrix<FloatType>(
+    lhs_mat = Eigen::SparseMatrix<double>(
         h_mesh.nof_dofs(), h_mesh.nof_dofs()
     );
-    rhs_vec = Eigen::VectorX<FloatType>::Zero(h_mesh.nof_dofs());
+    rhs_vec = Eigen::VectorXd::Zero(h_mesh.nof_dofs());
     zs_vec = h_mesh.pmat(Eigen::all, 1);
     lhs_coeffs.reserve((2*h_mesh.degree()+1)*h_mesh.nof_dofs());
 }
@@ -35,8 +35,8 @@ FreeSurfaceProblem::FreeSurfaceProblem(
 void FreeSurfaceProblem::assemble_lhs_explicit()
 {
     // Local variables for storing matrix and vector data during assembly.
-    Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
-    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::MatrixXd node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorXd qweights, qpoints_r, detJ_r;
     Eigen::VectorXi element;
 
     // Perform Gauss-Legendre quadrature for the given precision.
@@ -48,14 +48,14 @@ void FreeSurfaceProblem::assemble_lhs_explicit()
     );
 
     // Initialize matrices and vectors for mapping and calculation.
-    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    qpoints_x = Eigen::MatrixXd::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorXd::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), h_mesh.dofs_per_cell()
     );
 
     // Initialize the matrix for each element.
-    Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(
         h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
     );
 
@@ -70,7 +70,7 @@ void FreeSurfaceProblem::assemble_lhs_explicit()
 
         // Integrate over quadrature points to compute the matrix A.
         for (int q = 0; q < qpoints_r.rows(); ++q) {
-            FloatType detJxW = qweights(q)*detJ_r(q);
+            double detJxW = qweights(q)*detJ_r(q);
             for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                     A(i, j) += phi_r(q, i)*phi_r(q, j)*detJxW;
@@ -81,7 +81,7 @@ void FreeSurfaceProblem::assemble_lhs_explicit()
         // Store the computed coefficients into the triplet list.
         for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
             for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
-                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                lhs_coeffs.push_back(Eigen::Triplet<double>(
                     element(i),
                     element(j),
                     A(i, j)
@@ -98,13 +98,13 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
     FEMFunction1D &ux_fem_func,
     FEMFunction1D &uz_fem_func,
     FEMFunction1D &ac_fem_func,
-    FloatType dt
+    double dt
 )
 {
     // Local variables for storing matrix and vector data during assembly.
-    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+    Eigen::MatrixXd node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
         h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXd qweights, qpoints_r, detJ_r;
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
@@ -119,12 +119,12 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
     );
 
     // Initialize matrices and vectors for mapping and calculation.
-    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    qpoints_x = Eigen::MatrixXd::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorXd::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), h_mesh.dofs_per_cell()
     );
-    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    u_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), u_mesh.dofs_per_cell()
     );
 
@@ -144,15 +144,15 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
         );
 
         // Evaluate the functions at the quadrature points.
-        Eigen::VectorX<FloatType> h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> dh_vec = h_dphi_x*h0_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
+        Eigen::VectorXd h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
+        Eigen::VectorXd dh_vec = h_dphi_x*h0_fem_func.eval_cell(ci);
+        Eigen::VectorXd ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
+        Eigen::VectorXd uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
+        Eigen::VectorXd ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the RHS contributions.
         for (int q = 0; q < qpoints_r.rows(); ++q) {
-            FloatType detJxW = qweights(q)*detJ_r(q);
+            double detJxW = qweights(q)*detJ_r(q);
             for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 rhs_vec(element_h(i)) += h_phi_r(q, i)*(
                     h0_vec(q) + dt*(uz_vec(q) - ux_vec(q)*dh_vec(q) + ac_vec(q))
@@ -163,12 +163,12 @@ void FreeSurfaceProblem::assemble_rhs_explicit(
 }
 
 void FreeSurfaceProblem::assemble_lhs_simplicit(
-    FEMFunction1D &ux_fem_func, FloatType dt
+    FEMFunction1D &ux_fem_func, double dt
 ) {
     // Local variables for storing matrix and vector data during assembly.
-    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+    Eigen::MatrixXd node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
         h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXd qweights, qpoints_r, detJ_r;
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
@@ -183,17 +183,17 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
     );
 
     // Initialize matrices and vectors for mapping and calculation.
-    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    qpoints_x = Eigen::MatrixXd::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorXd::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), h_mesh.dofs_per_cell()
     );
-    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    u_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), u_mesh.dofs_per_cell()
     );
 
     // Initialize the matrix for each element.
-    Eigen::MatrixX<FloatType> A = Eigen::MatrixX<FloatType>::Zero(
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(
         h_mesh.dofs_per_cell(), h_mesh.dofs_per_cell()
     );
 
@@ -213,11 +213,11 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
         );
 
         // Evaluate the velocity function at the quadrature points.
-        Eigen::VectorX<FloatType> ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
+        Eigen::VectorXd ux_vec = u_phi_r*ux_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the LHS matrix.
         for (int q = 0; q < qpoints_r.rows(); ++q) {
-            FloatType detJxW = qweights(q)*detJ_r(q);
+            double detJxW = qweights(q)*detJ_r(q);
             for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
                     A(i, j) += (
@@ -231,7 +231,7 @@ void FreeSurfaceProblem::assemble_lhs_simplicit(
         // Store the computed coefficients into the triplet list.
         for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
             for (int j = 0; j < h_mesh.dofs_per_cell(); ++j) {
-                lhs_coeffs.push_back(Eigen::Triplet<FloatType>(
+                lhs_coeffs.push_back(Eigen::Triplet<double>(
                     element_h(i),
                     element_h(j),
                     A(i, j)
@@ -247,12 +247,12 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
     FEMFunction1D &h0_fem_func,
     FEMFunction1D &uz_fem_func,
     FEMFunction1D &ac_fem_func,
-    FloatType dt
+    double dt
 ) {
     // Local variables for storing matrix and vector data during assembly.
-    Eigen::MatrixX<FloatType> node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
+    Eigen::MatrixXd node_coords_h, node_coords_u, qpoints_x, h_phi_r, h_dphi_r,
         h_dphi_x, u_phi_r, u_dphi_r, u_dphi_x;
-    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::VectorXd qweights, qpoints_r, detJ_r;
     Eigen::VectorXi element_h, element_u;
 
     // Perform Gauss-Legendre quadrature for the given precision.
@@ -267,12 +267,12 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
     );
 
     // Initialize matrices and vectors for mapping and calculation.
-    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-    h_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    qpoints_x = Eigen::MatrixXd::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorXd::Zero(qpoints_r.rows());
+    h_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), h_mesh.dofs_per_cell()
     );
-    u_dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    u_dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), u_mesh.dofs_per_cell()
     );
 
@@ -292,13 +292,13 @@ void FreeSurfaceProblem::assemble_rhs_simplicit(
         );
 
         // Evaluate the functions at the quadrature points.
-        Eigen::VectorX<FloatType> h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
-        Eigen::VectorX<FloatType> ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
+        Eigen::VectorXd h0_vec = h_phi_r*h0_fem_func.eval_cell(ci);
+        Eigen::VectorXd uz_vec = u_phi_r*uz_fem_func.eval_cell(ci);
+        Eigen::VectorXd ac_vec = h_phi_r*ac_fem_func.eval_cell(ci);
 
         // Integrate over quadrature points to compute the RHS contributions.
         for (int q = 0; q < qpoints_r.rows(); ++q) {
-            FloatType detJxW = qweights(q)*detJ_r(q);
+            double detJxW = qweights(q)*detJ_r(q);
             for (int i = 0; i < h_mesh.dofs_per_cell(); ++i) {
                 rhs_vec(element_h(i)) += h_phi_r(q, i)*(
                     h0_vec(q) + dt*(uz_vec(q) + ac_vec(q))
@@ -315,7 +315,7 @@ void FreeSurfaceProblem::commit_lhs()
 
 void FreeSurfaceProblem::solve_linear_system()
 {
-    Eigen::SparseLU<Eigen::SparseMatrix<FloatType>> solver;
+    Eigen::SparseLU<Eigen::SparseMatrix<double>> solver;
     solver.analyzePattern(lhs_mat);
     solver.factorize(lhs_mat);
     zs_vec = solver.solve(rhs_vec);

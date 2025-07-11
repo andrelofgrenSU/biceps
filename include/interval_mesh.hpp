@@ -20,7 +20,6 @@
 
 #include <vector>
 #include <Eigen/Dense>
-#include <float_type.hpp>
 
 /**
  * @class IntervalMesh
@@ -88,7 +87,7 @@ public:
      * Each row corresponds to a point in the mesh, with columns representing spatial coordinates 
      * (e.g., x and z in 2D). This matrix defines the physical layout of the mesh.
      */
-    Eigen::MatrixX<FloatType> pmat;
+    Eigen::MatrixXd pmat;
 
     /** 
      * @brief Cell-to-DOF mapping matrix. 
@@ -114,7 +113,7 @@ public:
      * @param[in] n_cells Number of cells within the interval.
      * @param[in] degree Polynomial degree of the finite element basis functions.
      */
-    IntervalMesh(FloatType x0, FloatType x1, int n_cells, int degree);
+    IntervalMesh(double x0, double x1, int n_cells, int degree);
 
     /**
      * @brief Constructs an IntervalMesh from an existing point matrix and degree.
@@ -122,7 +121,7 @@ public:
      * @param[in] pmat A matrix representing point coordinates.
      * @param[in] degree Polynomial degree of the finite element basis functions.
      */
-    IntervalMesh(const Eigen::MatrixX<FloatType> &pmat, int degree);
+    IntervalMesh(const Eigen::MatrixXd &pmat, int degree);
 
     /**
      * @brief Extracts the indices of degrees of freedom based on a specified identifier.

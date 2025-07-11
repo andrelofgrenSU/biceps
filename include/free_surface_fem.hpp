@@ -37,23 +37,23 @@ private:
     /**
      * @brief Stores the coefficients for the left-hand side (LHS) matrix in sparse format.
      */
-    std::vector<Eigen::Triplet<FloatType>> lhs_coeffs; ///< Coefficients for LHS matrix.
+    std::vector<Eigen::Triplet<double>> lhs_coeffs; ///< Coefficients for LHS matrix.
 
     /**
      * @brief Sparse matrix representing the left-hand side (LHS) system matrix.
      */
-    Eigen::SparseMatrix<FloatType> lhs_mat; ///< The sparse LHS matrix of the system.
+    Eigen::SparseMatrix<double> lhs_mat; ///< The sparse LHS matrix of the system.
 
     /**
      * @brief Right-hand side (RHS) vector of the system.
      */
-    Eigen::VectorX<FloatType> rhs_vec; ///< The RHS vector.
+    Eigen::VectorXd rhs_vec; ///< The RHS vector.
 
 public:
     IntervalMesh &h_mesh; ///< The height mesh for the free surface problem.
     IntervalMesh &u_mesh; ///< The velocity mesh for the free surface problem.
 
-    Eigen::VectorX<FloatType> zs_vec; ///< Free surface height values.
+    Eigen::VectorXd zs_vec; ///< Free surface height values.
 
     int gp_lhs = 5;  ///< Gauss precision for lhs matrix.
     int gp_rhs = 5;  ///< Gauss precision for rhs vector.
@@ -87,7 +87,7 @@ public:
         FEMFunction1D &ux_fem_func,
         FEMFunction1D &uz_fem_func,
         FEMFunction1D &ac_fem_func,
-        FloatType dt
+        double dt
     );
 
     /**
@@ -98,7 +98,7 @@ public:
      */
     void assemble_lhs_simplicit(
         FEMFunction1D &ux_fem_func,
-        FloatType dt
+        double dt
     );
 
     /**
@@ -113,7 +113,7 @@ public:
         FEMFunction1D &h0_fem_func,
         FEMFunction1D &uz_fem_func,
         FEMFunction1D &ac_fem_func,
-        FloatType dt
+        double dt
     );
 
     /**

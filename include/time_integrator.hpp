@@ -29,19 +29,19 @@ public:
     *
     * @param[in] dt Time-step size
     */
-    Eigen::VectorX<FloatType> step_explicit(FloatType dt);
+    Eigen::VectorXd step_explicit(double dt);
 
     /**
     * @brief Numerically integrate in time using semi-implicit Euler
     *
     * @param[in] dt Time-step size
     */
-    Eigen::VectorX<FloatType> step_simplicit(FloatType dt);
+    Eigen::VectorXd step_simplicit(double dt);
 
     /**
     * @brief Extrude pStokes velocity and pressure meshes
     *
     * @param[in] zs_vec Surface height vector
     */
-    void extrude_mesh_z(const Eigen::VectorX<FloatType> &zs_vec);
+    void extrude_mesh_z(const Eigen::VectorXd &zs_vec);
 };

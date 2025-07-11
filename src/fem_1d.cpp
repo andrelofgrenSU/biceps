@@ -20,15 +20,15 @@
 
 void FEM1D::map_to_reference_cell(
     int degree, 
-    Eigen::MatrixX<FloatType> &node_coords,
-    Eigen::VectorX<FloatType> &qpoints_r,
-    Eigen::MatrixX<FloatType> &phi_r,
-    Eigen::MatrixX<FloatType> &grad_phi_r,
-    Eigen::VectorX<FloatType> &detJ_r_ret,
-    Eigen::MatrixX<FloatType> &qpoints_x_ret,
-    Eigen::MatrixX<FloatType> &grad_phi_x_ret
+    Eigen::MatrixXd &node_coords,
+    Eigen::VectorXd &qpoints_r,
+    Eigen::MatrixXd &phi_r,
+    Eigen::MatrixXd &grad_phi_r,
+    Eigen::VectorXd &detJ_r_ret,
+    Eigen::MatrixXd &qpoints_x_ret,
+    Eigen::MatrixXd &grad_phi_x_ret
 ) {
-    Eigen::VectorX<FloatType> dF;
+    Eigen::VectorXd dF;
 
     for (int i = 0; i < qpoints_r.rows(); i++) {
         // Compute the determinant of the Jacobian (dF.norm() gives the norm of the gradient vector)
@@ -45,15 +45,15 @@ void FEM1D::map_to_reference_cell(
 
 void FEM1D::lagrange_basis(
     int degree,
-    Eigen::VectorX<FloatType> &qpoints_r,
-    Eigen::MatrixX<FloatType> &phi_r_ret,
-    Eigen::MatrixX<FloatType> &grad_phi_r_ret
+    Eigen::VectorXd &qpoints_r,
+    Eigen::MatrixXd &phi_r_ret,
+    Eigen::MatrixXd &grad_phi_r_ret
 ) {
-    phi_r_ret = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), degree+1);
-    grad_phi_r_ret = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), degree+1);
+    phi_r_ret = Eigen::MatrixXd::Zero(qpoints_r.rows(), degree+1);
+    grad_phi_r_ret = Eigen::MatrixXd::Zero(qpoints_r.rows(), degree+1);
 
     for (int i = 0; i < qpoints_r.rows(); i++) {
-        FloatType r = qpoints_r(i);
+        double r = qpoints_r(i);
         if (degree == 1) {
             phi_r_ret(i, 0) = (1-r);
             phi_r_ret(i, 1) = r;
@@ -72,21 +72,21 @@ void FEM1D::lagrange_basis(
     }
 }
 
-Eigen::MatrixX<FloatType> FEM1D::reference_element_points_rs(
+Eigen::MatrixXd FEM1D::reference_element_points_rs(
     const int degree
 ) {
     IntervalMesh mesh(0.0, 1.0, 1, degree);	
-    Eigen::MatrixX<FloatType> ref_coords = mesh.pmat(mesh.cmat.row(0), Eigen::all);
+    Eigen::MatrixXd ref_coords = mesh.pmat(mesh.cmat.row(0), Eigen::all);
     return ref_coords;
 }
 
 void FEM1D::gauss_legendre_quadrature(
     const int precision,
-    Eigen::VectorX<FloatType> &points,
-    Eigen::VectorX<FloatType> &weights
+    Eigen::VectorXd &points,
+    Eigen::VectorXd &weights
 ) {
-    points = Eigen::VectorX<FloatType>::Zero(precision);
-    weights = Eigen::VectorX<FloatType>::Zero(precision);
+    points = Eigen::VectorXd::Zero(precision);
+    weights = Eigen::VectorXd::Zero(precision);
 
     if (precision == 1) {
         points <<
@@ -138,15 +138,15 @@ void FEM1D::gauss_legendre_quadrature(
     }
 }
 
-Eigen::SparseMatrix<FloatType> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, int gp) {
+Eigen::SparseMatrix<double> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, int gp) {
     // Local variables for node coordinates, quadrature points, shape functions, and Jacobian determinants
-    Eigen::MatrixX<FloatType> node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
-    Eigen::VectorX<FloatType> qweights, qpoints_r, detJ_r;
+    Eigen::MatrixXd node_coords, qpoints_x, phi_r, dphi_r, dphi_x;
+    Eigen::VectorXd qweights, qpoints_r, detJ_r;
     Eigen::VectorXi element;
-    std::vector<Eigen::Triplet<FloatType>> mat_coeffs;
+    std::vector<Eigen::Triplet<double>> mat_coeffs;
 
     // Initialize the sparse matrix to store the mass matrix
-    Eigen::SparseMatrix<FloatType> M_sp_ret = Eigen::SparseMatrix<FloatType>(
+    Eigen::SparseMatrix<double> M_sp_ret = Eigen::SparseMatrix<double>(
         mesh.nof_dofs(), mesh.nof_dofs()
     );
 
@@ -156,14 +156,14 @@ Eigen::SparseMatrix<FloatType> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, i
     FEM1D::lagrange_basis(mesh.degree(), qpoints_r, phi_r, dphi_r);
 
     // Initialize arrays to store quadrature points in physical space and derivatives
-    qpoints_x = Eigen::MatrixX<FloatType>::Zero(qpoints_r.rows(), 2);
-    detJ_r = Eigen::VectorX<FloatType>::Zero(qpoints_r.rows());
-    dphi_x = Eigen::MatrixX<FloatType>::Zero(
+    qpoints_x = Eigen::MatrixXd::Zero(qpoints_r.rows(), 2);
+    detJ_r = Eigen::VectorXd::Zero(qpoints_r.rows());
+    dphi_x = Eigen::MatrixXd::Zero(
         qpoints_r.rows(), mesh.dofs_per_cell()
     );
 
     // Block matrix for local mass matrix contributions
-    Eigen::MatrixX<FloatType> M_block = Eigen::MatrixX<FloatType>::Zero(
+    Eigen::MatrixXd M_block = Eigen::MatrixXd::Zero(
         mesh.dofs_per_cell(), mesh.dofs_per_cell()
     );
 
@@ -180,7 +180,7 @@ Eigen::SparseMatrix<FloatType> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, i
 
         // Loop over the quadrature points to calculate the local mass matrix
         for (int q = 0; q < qpoints_r.rows(); q++) {
-            FloatType detJxW = qweights(q) * detJ_r(q);  // Weighted Jacobian determinant
+            double detJxW = qweights(q) * detJ_r(q);  // Weighted Jacobian determinant
             for (int i = 0; i < mesh.dofs_per_cell(); i++) {
                 for (int j = 0; j < mesh.dofs_per_cell(); j++) {
                     M_block(i, j) += phi_r(q, i) * phi_r(q, j) * detJxW;  // Assemble mass matrix block
@@ -191,7 +191,7 @@ Eigen::SparseMatrix<FloatType> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, i
         // Add local contributions to the global sparse matrix
         for (int i = 0; i < mesh.dofs_per_cell(); i++) {
             for (int j = 0; j < mesh.dofs_per_cell(); j++) {
-                mat_coeffs.push_back(Eigen::Triplet<FloatType>(
+                mat_coeffs.push_back(Eigen::Triplet<double>(
                     element(i),  ///< Global row index
                     element(j),  ///< Global column index
                     M_block(i, j)  ///< Matrix entry value
@@ -208,10 +208,10 @@ Eigen::SparseMatrix<FloatType> FEM1D::assemble_mass_matrix(IntervalMesh &mesh, i
     return M_sp_ret;
 }
 
-FloatType FEM1D::inner(
-    const Eigen::VectorX<FloatType> &u_vec,
-    const Eigen::SparseMatrix<FloatType> &M,
-    const Eigen::VectorX<FloatType> &v_vec
+double FEM1D::inner(
+    const Eigen::VectorXd &u_vec,
+    const Eigen::SparseMatrix<double> &M,
+    const Eigen::VectorXd &v_vec
 ) {
     return u_vec.dot(M*v_vec);
 }

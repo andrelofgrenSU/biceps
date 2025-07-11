@@ -66,23 +66,23 @@ int binary_find(const std::vector<int> &vec, int e)
 }
 
 public:
-inline SparseMatrix<FloatType> extract_block(
+inline SparseMatrix<double> extract_block(
     const Eigen::VectorXi &row_inds, const Eigen::VectorXi &col_inds
 ) {
-    SparseMatrix<FloatType> sp_block(row_inds.size(), col_inds.size());
-    std::vector<Eigen::Triplet<FloatType>> block_coeffs;
+    SparseMatrix<double> sp_block(row_inds.size(), col_inds.size());
+    std::vector<Eigen::Triplet<double>> block_coeffs;
     block_coeffs.reserve(nonZeros());
     for (int col = 0; col < this->outerSize(); col++) {
         int block_col = binary_find(col_inds, col);
         for (
-            SparseMatrix<FloatType>::InnerIterator it(*this, col); it; ++it
+            SparseMatrix<double>::InnerIterator it(*this, col); it; ++it
         ) {
         int row = it.row();
-        FloatType val = it.value();
+        double val = it.value();
         int block_row = binary_find(row_inds, row);
             if (block_row != -1 && block_col != -1) {
                 block_coeffs.push_back(
-                    Eigen::Triplet<FloatType>(block_row, block_col, val)
+                    Eigen::Triplet<double>(block_row, block_col, val)
                 );
             }
         }
@@ -92,23 +92,23 @@ inline SparseMatrix<FloatType> extract_block(
     return sp_block;
 }
 
-inline SparseMatrix<FloatType> extract_block(
+inline SparseMatrix<double> extract_block(
     const std::vector<int> &row_inds, const std::vector<int> &col_inds
 ) {
-    SparseMatrix<FloatType> sp_block(row_inds.size(), col_inds.size());
-    std::vector<Eigen::Triplet<FloatType>> block_coeffs;
+    SparseMatrix<double> sp_block(row_inds.size(), col_inds.size());
+    std::vector<Eigen::Triplet<double>> block_coeffs;
     block_coeffs.reserve(nonZeros());
     for (int col = 0; col < this->outerSize(); col++) {
         int block_col = binary_find(col_inds, col);
         for (
-            SparseMatrix<FloatType>::InnerIterator it(*this, col); it; ++it
+            SparseMatrix<double>::InnerIterator it(*this, col); it; ++it
         ) {
             int row = it.row();
-            FloatType val = it.value();
+            double val = it.value();
             int block_row = binary_find(row_inds, row);
             if (block_row != -1 && block_col != -1) {
                 block_coeffs.push_back(
-                    Eigen::Triplet<FloatType>(block_row, block_col, val)
+                    Eigen::Triplet<double>(block_row, block_col, val)
                 );
             }
         }
